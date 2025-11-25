@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { MainLayout } from './components/layout/MainLayout';
 import { FileTree } from './components/layout/FileTree';
@@ -9,7 +9,7 @@ import { DirectoryScanDialog } from './components/dialogs/DirectoryScanDialog';
 import { IndexingModal } from './components/dialogs/IndexingModal';
 import { useFileSystem } from './hooks/useFileSystem';
 import { FileInfo, AnalysisGroup, IndexStats } from './types';
-import { PreviewFile } from './components/viewers/PreviewFile.tsx';
+import { PreviewFile, PreviewFileHandle } from './components/viewers/PreviewFile.tsx';
 import {scanDirectory, createProjectDatabase, indexDirectory, createGroup, getGroups, deleteGroup} from './lib/tauri';
 import {listen} from "@tauri-apps/api/event";
 
@@ -17,6 +17,7 @@ function App() {
   const { files, setFiles, tabs, activeTabId, setActiveTabId, openFile, closeTab } = useFileSystem();
   const [sidebarTab, setSidebarTab] = useState<'files' | 'search' | 'database' | 'analysis' | 'groups' | 'timeline'>('files');
   const [groups, setGroups] = useState<AnalysisGroup[]>([]);
+  const previewFileRef = useRef<PreviewFileHandle>(null);
 
   // Directory scanning state
   const [showScanDialog, setShowScanDialog] = useState(false);
@@ -30,10 +31,22 @@ function App() {
   const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
   const [indexError, setIndexError] = useState<string | null>(null);
 
-  listen("closeTab", () => {
+  useEffect(() => {
+    const unlistenCloseTab = listen("closeTab", () => {
       console.log("closeTab event received")
       activeTabId && closeTab(activeTabId)
-  })
+    })
+
+    const unlistenSearch = listen("search", () => {
+      console.log("search event received")
+      previewFileRef.current?.openSearch()
+    })
+
+    return () => {
+      unlistenCloseTab.then(fn => fn());
+      unlistenSearch.then(fn => fn());
+    }
+  }, [activeTabId, closeTab])
 
   const mockTimelineEvents = [
     {
@@ -254,7 +267,7 @@ function App() {
       );
     }
     return (
-      <PreviewFile path={activeTab.path} fileName={activeTab?.name} />
+      <PreviewFile ref={previewFileRef} path={activeTab.path} fileName={activeTab?.name} />
     );
   };
 

@@ -1,13 +1,17 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState, forwardRef, useImperativeHandle, useRef} from 'react';
 import { ArrowUpDown, Search } from 'lucide-react';
 import { DataContextMenu } from '../ui/DataContextMenu';
+
+export interface CsvViewerHandle {
+  openSearch: () => void;
+}
 
 interface CsvViewerProps {
   data: string;
   delimiter?: string;
 }
 
-export function CsvViewer({ data, delimiter = ',' }: CsvViewerProps) {
+export const CsvViewer = forwardRef<CsvViewerHandle, CsvViewerProps>(function CsvViewer({ data, delimiter = ',' }, ref) {
   const [sortColumn, setSortColumn] = useState<number | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [filter, setFilter] = useState('');
@@ -15,6 +19,13 @@ export function CsvViewer({ data, delimiter = ',' }: CsvViewerProps) {
     value: any;
     position: { x: number; y: number };
   } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    openSearch: () => {
+      inputRef.current?.focus();
+    },
+  }));
 
     const [csvStructure, setCsvStructure] = useState<string | null>(null)
     useEffect(() => {
@@ -82,6 +93,7 @@ export function CsvViewer({ data, delimiter = ',' }: CsvViewerProps) {
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <Search className="w-4 h-4 text-gray-400" />
           <input
+            ref={inputRef}
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -158,4 +170,4 @@ export function CsvViewer({ data, delimiter = ',' }: CsvViewerProps) {
       )}
     </div>
   );
-}
+});

@@ -1,6 +1,10 @@
-import {useEffect, useMemo, useState} from 'react';
-import { Settings } from 'lucide-react';
+import {useEffect, useMemo, useState, forwardRef, useImperativeHandle} from 'react';
+import { Settings, Search, X } from 'lucide-react';
 import { DataContextMenu } from '../ui/DataContextMenu';
+
+export interface HexViewerHandle {
+  openSearch: () => void;
+}
 
 interface HexViewerProps {
   data: string;
@@ -35,7 +39,7 @@ const calculateEntropy = (data: Uint8Array): number => {
   return entropy;
 };
 
-export function HexViewer({ data, bytesPerRow = 16 }: HexViewerProps) {
+export const HexViewer = forwardRef<HexViewerHandle, HexViewerProps>(function HexViewer({ data, bytesPerRow = 16 }, ref) {
   const [encoding, setEncoding] = useState<Encoding>('utf-8');
   const [showSettings, setShowSettings] = useState(false);
   const [bytesPerRowSetting, setBytesPerRowSetting] = useState(bytesPerRow);
@@ -44,6 +48,15 @@ export function HexViewer({ data, bytesPerRow = 16 }: HexViewerProps) {
     value: any;
     position: { x: number; y: number };
   } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchMode, setSearchMode] = useState<'text' | 'hex'>('text');
+
+  useImperativeHandle(ref, () => ({
+    openSearch: () => {
+      setShowSearch(true);
+    },
+  }));
 
     const [bytes, setBytes] = useState<Uint8Array>(new Uint8Array(0))
   useEffect(() => {
@@ -80,12 +93,28 @@ export function HexViewer({ data, bytesPerRow = 16 }: HexViewerProps) {
     }
   };
 
+  const matchesSearch = (rowIndex: number): boolean => {
+    if (!searchTerm) return false;
+
+    const startOffset = rowIndex * bytesPerRowSetting;
+    const rowBytes = bytes.slice(startOffset, startOffset + bytesPerRowSetting);
+
+    if (searchMode === 'hex') {
+      const hexStr = Array.from(rowBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      return hexStr.includes(searchTerm.toLowerCase().replace(/\s/g, ''));
+    } else {
+      const ascii = Array.from(rowBytes).map(b => String.fromCharCode(b)).join('');
+      return ascii.toLowerCase().includes(searchTerm.toLowerCase());
+    }
+  };
+
   const rows = useMemo(() => {
     const result: Array<{
       offset: string;
       hex: string[];
       ascii: string;
       decoded: string;
+      matches: boolean;
     }> = [];
 
     for (let i = 0; i < bytes.length; i += bytesPerRowSetting) {
@@ -109,11 +138,12 @@ export function HexViewer({ data, bytesPerRow = 16 }: HexViewerProps) {
         hex,
         ascii,
         decoded,
+        matches: matchesSearch(i / bytesPerRowSetting),
       });
     }
 
     return result;
-  }, [bytes, bytesPerRowSetting, encoding]);
+  }, [bytes, bytesPerRowSetting, encoding, searchTerm, searchMode]);
 
   const stats = useMemo(() => {
     const nullBytes = Array.from(bytes).filter(b => b === 0).length;
@@ -159,6 +189,16 @@ export function HexViewer({ data, bytesPerRow = 16 }: HexViewerProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            className={`p-1.5 rounded transition-colors ${
+              showSearch ? 'bg-ide-blue text-white' : 'hover:bg-editor-selection'
+            }`}
+            title="Search"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+
           <select
             value={encoding}
             onChange={(e) => setEncoding(e.target.value as Encoding)}
@@ -182,6 +222,39 @@ export function HexViewer({ data, bytesPerRow = 16 }: HexViewerProps) {
           </button>
         </div>
       </div>
+
+      {/* Search Panel */}
+      {showSearch && (
+        <div className="border-b border-editor-border bg-editor-toolbar px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Search className="w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={searchMode === 'hex' ? "Search hex (e.g., 48656c6c6f)..." : "Search text..."}
+              className="flex-1 px-2 py-1 text-sm bg-editor-bg border border-editor-border rounded text-gray-300 focus:outline-none focus:border-ide-blue"
+              autoFocus
+            />
+            <select
+              value={searchMode}
+              onChange={(e) => setSearchMode(e.target.value as 'text' | 'hex')}
+              className="px-2 py-1 text-xs bg-editor-bg border border-editor-border rounded text-gray-300 focus:outline-none focus:border-ide-blue"
+            >
+              <option value="text">Text</option>
+              <option value="hex">Hex</option>
+            </select>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="p-1 hover:bg-editor-selection rounded"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Settings Panel */}
       {showSettings && (
@@ -217,7 +290,7 @@ export function HexViewer({ data, bytesPerRow = 16 }: HexViewerProps) {
         </div>
 
         {rows.map((row, idx) => (
-          <div key={idx} className="flex gap-6 hover:bg-editor-toolbar transition-colors py-0.5">
+          <div key={idx} className={`flex gap-6 transition-colors py-0.5 ${row.matches ? 'bg-yellow-900/30' : 'hover:bg-editor-toolbar'}`}>
             <div className="w-20 text-ide-cyan">{row.offset}</div>
             <div style={{ width: `${bytesPerRowSetting * 2.5}ch` }} className="flex gap-1 flex-wrap">
               {row.hex.map((byte, i) => (
@@ -292,4 +365,4 @@ export function HexViewer({ data, bytesPerRow = 16 }: HexViewerProps) {
       )}
     </div>
   );
-}
+});

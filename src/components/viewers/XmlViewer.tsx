@@ -1,12 +1,16 @@
-import {useState, useMemo, useEffect} from 'react';
-import { ChevronDown, ChevronRight, Copy } from 'lucide-react';
+import {useState, useMemo, useEffect, forwardRef, useImperativeHandle} from 'react';
+import { ChevronDown, ChevronRight, Copy, Search, X } from 'lucide-react';
 import { DataContextMenu } from '../ui/DataContextMenu';
+
+export interface XmlViewerHandle {
+  openSearch: () => void;
+}
 
 interface XmlViewerProps {
   data: string;
 }
 
-export function XmlViewer({ data }: XmlViewerProps) {
+export const XmlViewer = forwardRef<XmlViewerHandle, XmlViewerProps>(function XmlViewer({ data }, ref) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'tree' | 'formatted'>('tree');
   const [error, setError] = useState<string | null>(null);
@@ -14,6 +18,14 @@ export function XmlViewer({ data }: XmlViewerProps) {
     value: any;
     position: { x: number; y: number };
   } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    openSearch: () => {
+      setShowSearch(true);
+    },
+  }));
     const [xmlStructure, setXmlStructure] = useState<any>(null)
     useEffect(() => {
         fetch(data).then(r => r.text()).then(r => setXmlStructure(r))
@@ -276,6 +288,15 @@ export function XmlViewer({ data }: XmlViewerProps) {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowSearch(!showSearch)}
+            className={`p-1.5 rounded transition-colors ${
+              showSearch ? 'bg-ide-blue text-white' : 'hover:bg-editor-selection'
+            }`}
+            title="Search"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+          <button
             onClick={() => setExpandedNodes(new Set())}
             className="px-2 py-1 text-xs bg-editor-bg text-gray-400 hover:text-gray-300 rounded"
             title="Collapse All"
@@ -292,6 +313,31 @@ export function XmlViewer({ data }: XmlViewerProps) {
         </div>
       </div>
 
+      {/* Search Panel */}
+      {showSearch && (
+        <div className="border-b border-editor-border bg-editor-toolbar px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Search className="w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search XML content..."
+              className="flex-1 px-2 py-1 text-sm bg-editor-bg border border-editor-border rounded text-gray-300 focus:outline-none focus:border-ide-blue"
+              autoFocus
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="p-1 hover:bg-editor-selection rounded"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
         {viewMode === 'tree' ? (
@@ -300,7 +346,22 @@ export function XmlViewer({ data }: XmlViewerProps) {
           </div>
         ) : (
           <pre className="font-mono text-sm text-gray-300 whitespace-pre">
-            {formattedXml}
+            {searchTerm ? (
+              formattedXml.split('\n').map((line: string, idx: number) => {
+                const lowerLine = line.toLowerCase();
+                const lowerSearch = searchTerm.toLowerCase();
+                if (lowerLine.includes(lowerSearch)) {
+                  return (
+                    <div key={idx} className="bg-yellow-900/30">
+                      {line}
+                    </div>
+                  );
+                }
+                return <div key={idx}>{line}</div>;
+              })
+            ) : (
+              formattedXml
+            )}
           </pre>
         )}
       </div>
@@ -323,4 +384,4 @@ export function XmlViewer({ data }: XmlViewerProps) {
       )}
     </div>
   );
-}
+});

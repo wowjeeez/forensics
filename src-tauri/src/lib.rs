@@ -59,7 +59,7 @@ pub fn run() {
         .setup(|app| {
                 #[cfg(desktop)]
                 {
-                        use tauri::Emitter;
+                        use tauri::{Emitter, Manager};
                         use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
 
                         app.handle().plugin(
@@ -82,9 +82,24 @@ pub fn run() {
                                     ])?
                                     .with_handler(|app, shortcut, event| {
                                             if event.state == ShortcutState::Pressed  {
+                                                    // Check if any window is focused before handling shortcuts
+                                                    let window = app.get_webview_window("main");
+                                                    if let Some(window) = window {
+                                                            if let Ok(is_focused) = window.is_focused() {
+                                                                    if !is_focused {
+                                                                            // Window is not focused, don't handle the shortcut
+                                                                            return;
+                                                                    }
+                                                            }
+                                                    }
+
                                                     if shortcut.mods.contains(Modifiers::SUPER) && shortcut.key == Code::KeyW {
                                                          println!("Closing tab");
                                                             app.emit("closeTab", ()).unwrap();
+                                                    }
+                                                    if shortcut.mods.contains(Modifiers::SUPER) && shortcut.key == Code::KeyF {
+                                                            println!("Search");
+                                                            app.emit("search", ()).unwrap();
                                                     }
                                             }
                                     })

@@ -1,19 +1,23 @@
-import {useEffect, useMemo, useState} from 'react';
-import { CodeEditor } from '../editor/CodeEditor';
-import { HexViewer } from './HexViewer';
+import {useEffect, useMemo, useState, forwardRef, useImperativeHandle, useRef} from 'react';
+import { CodeEditor, CodeEditorHandle } from '../editor/CodeEditor';
+import { HexViewer, HexViewerHandle } from './HexViewer';
 import { ImageViewer } from './ImageViewer';
-import { JsonViewer } from './JsonViewer';
-import { CsvViewer } from './CsvViewer';
+import { JsonViewer, JsonViewerHandle } from './JsonViewer';
+import { CsvViewer, CsvViewerHandle } from './CsvViewer';
 import { PdfViewer } from './PdfViewer';
 import { OfficeViewer } from './OfficeViewer';
 import { DatabaseDirectoryViewer } from './DatabaseDirectoryViewer';
-import { SqliteViewer } from './SqliteViewer';
+import { SqliteViewer, SqliteViewerHandle } from './SqliteViewer';
 import { LevelDbViewer } from './LevelDbViewer';
 import { IndexedDbViewer } from './IndexedDbViewer';
-import { XmlViewer } from './XmlViewer';
+import { XmlViewer, XmlViewerHandle } from './XmlViewer';
 import { FileType as FileTypeIcon } from 'lucide-react';
 import {convertFileSrc, invoke} from "@tauri-apps/api/core";
 import { normalizePath, getFileExtension } from '../../lib/pathUtils';
+
+export interface PreviewFileHandle {
+  openSearch: () => void;
+}
 
 interface PreviewFileProps {
   path: string;
@@ -22,11 +26,31 @@ interface PreviewFileProps {
 
 type ViewerType = 'auto' | 'text' | 'hex' | 'json' | 'xml' | 'csv' | 'image' | 'pdf' | 'code' | 'sqlite' | 'leveldb' | 'indexeddb';
 
-export function PreviewFile({ path, fileName }: PreviewFileProps) {
+export const PreviewFile = forwardRef<PreviewFileHandle, PreviewFileProps>(function PreviewFile({ path, fileName }, ref) {
     const [error, setError] = useState<string | null>(null);
     const [dbDirType, setDbDirType] = useState<'leveldb' | 'indexeddb' | 'sqlite' | null>(null);
     const [viewerOverride, setViewerOverride] = useState<ViewerType>('auto');
     const [showViewerMenu, setShowViewerMenu] = useState(false);
+
+    // Refs for different viewer types
+    const codeEditorRef = useRef<CodeEditorHandle>(null);
+    const jsonViewerRef = useRef<JsonViewerHandle>(null);
+    const hexViewerRef = useRef<HexViewerHandle>(null);
+    const xmlViewerRef = useRef<XmlViewerHandle>(null);
+    const csvViewerRef = useRef<CsvViewerHandle>(null);
+    const sqliteViewerRef = useRef<SqliteViewerHandle>(null);
+
+    useImperativeHandle(ref, () => ({
+      openSearch: () => {
+        // Try to open search on the currently active viewer
+        codeEditorRef.current?.openSearch();
+        jsonViewerRef.current?.openSearch();
+        hexViewerRef.current?.openSearch();
+        xmlViewerRef.current?.openSearch();
+        csvViewerRef.current?.openSearch();
+        sqliteViewerRef.current?.openSearch();
+      },
+    }));
     const viewerOptions: { value: ViewerType; label: string }[] = [
         {value: 'auto', label: 'Auto Detect'},
         {value: 'text', label: 'Plain Text'},
@@ -200,7 +224,7 @@ export function PreviewFile({ path, fileName }: PreviewFileProps) {
     if (viewerOverride === 'sqlite' || (viewerOverride === 'auto' && dbDirType === 'sqlite')) {
         return <>
             {openAs()}
-            <SqliteViewer path={normalizedPath}/>
+            <SqliteViewer ref={sqliteViewerRef} path={normalizedPath}/>
         </>;
     }
 
@@ -253,21 +277,21 @@ export function PreviewFile({ path, fileName }: PreviewFileProps) {
             const viewAs = viewerOverride === 'auto' ? mapCategory(ext) : viewerOverride;
             switch (viewAs) {
                 case 'hex':
-                    return <HexViewer data={url}/>;
+                    return <HexViewer ref={hexViewerRef} data={url}/>;
                 case 'text':
-                    return <CodeEditor value={url} language="text" readOnly={true}/>;
+                    return <CodeEditor ref={codeEditorRef} value={url} language="text" readOnly={true}/>;
                 case 'code':
-                    return <CodeEditor value={url} language="javascript" readOnly={true}/>;
+                    return <CodeEditor ref={codeEditorRef} value={url} language="javascript" readOnly={true}/>;
                 case 'json':
                     try {
-                        return <JsonViewer data={url}/>;
+                        return <JsonViewer ref={jsonViewerRef} data={url}/>;
                     } catch {
-                        return <CodeEditor value={url} language="json" readOnly={true}/>;
+                        return <CodeEditor ref={codeEditorRef} value={url} language="json" readOnly={true}/>;
                     }
                 case 'xml':
-                    return <XmlViewer data={url}/>;
+                    return <XmlViewer ref={xmlViewerRef} data={url}/>;
                 case 'csv':
-                    return <CsvViewer data={url}/>;
+                    return <CsvViewer ref={csvViewerRef} data={url}/>;
                 case 'image':
                     return <ImageViewer src={url} fileName={fileName}/>;
                 case 'pdf':
@@ -292,14 +316,14 @@ export function PreviewFile({ path, fileName }: PreviewFileProps) {
             }
 
             if (ext === 'xml' || ext === 'svg' || ext === 'xsd' || ext === 'xsl') {
-                return <XmlViewer data={url}/>;
+                return <XmlViewer ref={xmlViewerRef} data={url}/>;
             }
 
             const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'heic', 'heif', 'avif', 'ico', 'tiff'];
             if (imageExts.includes(ext)) {
                 return <ImageViewer src={url} fileName={fileName}/>;
             }
-            return <HexViewer data={url}/>
+            return <HexViewer ref={hexViewerRef} data={url}/>
         };
 
         return (<div className="h-full flex flex-col">{openAs()}
@@ -308,4 +332,4 @@ export function PreviewFile({ path, fileName }: PreviewFileProps) {
                 </div>
             </div>
         );
-    }
+    });

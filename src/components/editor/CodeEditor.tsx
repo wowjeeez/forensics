@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState, forwardRef, useImperativeHandle} from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import {EditorState, Text} from '@codemirror/state';
 import { javascript } from '@codemirror/lang-javascript';
@@ -6,6 +6,11 @@ import { python } from '@codemirror/lang-python';
 import { json } from '@codemirror/lang-json';
 import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
+import { search, highlightSelectionMatches, openSearchPanel } from '@codemirror/search';
+
+export interface CodeEditorHandle {
+  openSearch: () => void;
+}
 
 interface CodeEditorProps {
   value: string;
@@ -60,10 +65,19 @@ const intellijTheme = EditorView.theme({
   },
 }, { dark: true });
 
-export function CodeEditor({ value, language = 'text', readOnly = false, onChange }: CodeEditorProps) {
+export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(function CodeEditor({ value, language = 'text', readOnly = false, onChange }, ref) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
     const [fetchedText, setFetchedText] = useState<any>(null)
+
+    useImperativeHandle(ref, () => ({
+      openSearch: () => {
+        if (viewRef.current) {
+          openSearchPanel(viewRef.current);
+        }
+      },
+    }));
+
     useEffect(() => {
         fetch(value).then(r => r.text()).then(r => setFetchedText(r))
     }, [value])
@@ -76,6 +90,8 @@ export function CodeEditor({ value, language = 'text', readOnly = false, onChang
       intellijTheme,
       languageExtensions[language] || [],
       EditorState.readOnly.of(readOnly),
+      search({ top: true }),
+      highlightSelectionMatches(),
     ];
 
     if (onChange) {
@@ -119,4 +135,4 @@ export function CodeEditor({ value, language = 'text', readOnly = false, onChang
   }, [fetchedText]);
 
   return <div ref={editorRef} className="h-full w-full overflow-auto" />;
-}
+});

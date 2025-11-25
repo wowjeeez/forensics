@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, forwardRef, useImperativeHandle, useRef } from 'react';
 import { Database, Table, ChevronRight, ChevronDown, Key, Hash, Info, Search } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { DataContextMenu } from '../ui/DataContextMenu';
+
+export interface SqliteViewerHandle {
+  openSearch: () => void;
+}
 
 interface SqliteViewerProps {
   path: string;
@@ -32,7 +36,7 @@ interface QueryResultRow {
   values: any[];
 }
 
-export function SqliteViewer({ path }: SqliteViewerProps) {
+export const SqliteViewer = forwardRef<SqliteViewerHandle, SqliteViewerProps>(function SqliteViewer({ path }, ref) {
   const [dbInfo, setDbInfo] = useState<SqliteDatabaseInfo | null>(null);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [tableData, setTableData] = useState<QueryResultRow[]>([]);
@@ -46,6 +50,13 @@ export function SqliteViewer({ path }: SqliteViewerProps) {
     position: { x: number; y: number };
     structuralPath: string;
   } | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    openSearch: () => {
+      searchInputRef.current?.focus();
+    },
+  }));
 
   const ROWS_PER_PAGE = 100;
 
@@ -204,6 +215,7 @@ export function SqliteViewer({ path }: SqliteViewerProps) {
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-500" />
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Search tables..."
               value={searchTerm}
@@ -424,4 +436,4 @@ export function SqliteViewer({ path }: SqliteViewerProps) {
       )}
     </div>
   );
-}
+});
