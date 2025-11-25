@@ -13,7 +13,7 @@ import { IndexedDbViewer } from './IndexedDbViewer';
 import { XmlViewer } from './XmlViewer';
 import { FileType as FileTypeIcon } from 'lucide-react';
 import {convertFileSrc, invoke} from "@tauri-apps/api/core";
-import { normalizePath, pathToFileUrl, getFileExtension } from '../../lib/pathUtils';
+import { normalizePath, getFileExtension } from '../../lib/pathUtils';
 
 interface PreviewFileProps {
   path: string;

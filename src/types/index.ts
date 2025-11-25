@@ -36,9 +36,8 @@ export interface SearchResult {
 }
 
 export interface AnalysisGroup {
-  id: string;
   name: string;
-  items: string[];
+  content: [string, string][];
   color: string;
 }
 

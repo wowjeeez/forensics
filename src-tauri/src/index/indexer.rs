@@ -16,6 +16,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use directories::ProjectDirs;
 use serde::{Serialize, Deserialize};
+use crate::db::AuxiliaryProjectDb;
 
 /// Main indexing orchestrator
 /// Coordinates file detection, extraction, and indexing
@@ -37,6 +38,8 @@ pub struct MasterIndexer {
 
     /// Index directory
     index_dir: PathBuf,
+
+    auxiliary_db: Arc<AuxiliaryProjectDb>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,6 +114,9 @@ impl MasterIndexer {
             None
         };
 
+        let auxiliary_db = AuxiliaryProjectDb::init(index_dir.join("aux"))?;
+
+
         Ok(Self {
             inverted_index: Arc::new(inverted_index),
             extractor_registry: Arc::new(extractor_registry),
@@ -118,6 +124,7 @@ impl MasterIndexer {
             archive_extractor,
             image_preview,
             index_dir: index_dir.to_path_buf(),
+            auxiliary_db: Arc::new(auxiliary_db),
         })
     }
 
@@ -196,6 +203,9 @@ impl MasterIndexer {
             None
         };
 
+        let auxiliary_db = AuxiliaryProjectDb::init(index_dir.join("aux"))?;
+
+
         Ok(Self {
             inverted_index: Arc::new(inverted_index),
             extractor_registry: Arc::new(extractor_registry),
@@ -203,6 +213,7 @@ impl MasterIndexer {
             archive_extractor,
             image_preview,
             index_dir: index_dir.to_path_buf(),
+            auxiliary_db: Arc::new(auxiliary_db),
         })
     }
 
@@ -424,6 +435,10 @@ impl MasterIndexer {
         let mut files = Vec::new();
         Self::scan_recursive(root, &mut files)?;
         Ok(files)
+    }
+
+    pub fn get_auxiliary_db(&self) -> Arc<AuxiliaryProjectDb> {
+        self.auxiliary_db.clone()
     }
 
     fn scan_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {

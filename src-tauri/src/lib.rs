@@ -49,6 +49,9 @@ pub fn run() {
             db::commands::query_sqlite_table,
             db::commands::query_leveldb_info,
             db::commands::query_indexeddb_info,
+             db::commands::create_group,
+                db::commands::get_groups,
+                db::commands::delete_group
            // db::commands::store_file_note,
            // db::commands::add_file_tag,
            // db::commands::get_all_tags,

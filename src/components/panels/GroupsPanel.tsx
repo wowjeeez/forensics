@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, FolderOpen, Search, Sparkles, Filter } from 'lucide-react';
+import { Plus, Trash2, Edit2, FolderOpen, Search, Sparkles } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 
 interface Group {

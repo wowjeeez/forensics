@@ -10,7 +10,7 @@ import { IndexingModal } from './components/dialogs/IndexingModal';
 import { useFileSystem } from './hooks/useFileSystem';
 import { FileInfo, AnalysisGroup, IndexStats } from './types';
 import { PreviewFile } from './components/viewers/PreviewFile.tsx';
-import { scanDirectory, createProjectDatabase, indexDirectory } from './lib/tauri';
+import {scanDirectory, createProjectDatabase, indexDirectory, createGroup, getGroups, deleteGroup} from './lib/tauri';
 
 function App() {
   const { files, setFiles, tabs, activeTabId, setActiveTabId, openFile, closeTab } = useFileSystem();
@@ -111,6 +111,9 @@ function App() {
       // Convert FileInfo to FileNode format and set as files
       setFiles(filteredTree.children || []);
       setScannedTree(null);
+      const groups = await getGroups()
+        console.log(groups)
+        setGroups(groups ?? [])
     } catch (error) {
       console.error('Error indexing directory:', error);
       setIndexError(error instanceof Error ? error.message : 'Unknown error occurred');
@@ -151,16 +154,19 @@ function App() {
 
   const handleCreateGroup = (name: string, color: string) => {
     const newGroup: AnalysisGroup = {
-      id: Math.random().toString(36).substr(2, 9),
       name,
       color,
-      items: [],
+      content: [],
     };
     setGroups(prev => [...prev, newGroup]);
+      createGroup(name, color).then(() => console.log("Group created"))
   };
 
-  const handleDeleteGroup = (groupId: string) => {
-    setGroups(prev => prev.filter(g => g.id !== groupId));
+  const handleDeleteGroup = (name: string, color: string) => {
+    setGroups(prev => prev.filter(g => g.name !== name));
+      deleteGroup(name, color).then(() => console.log("Group deleted"))
+
+
   };
 
   const renderSidebarContent = () => {

@@ -5,8 +5,8 @@ import { AnalysisGroup } from '../../types';
 interface GroupManagerProps {
   groups?: AnalysisGroup[];
   onCreateGroup?: (name: string, color: string) => void;
-  onDeleteGroup?: (groupId: string) => void;
-  onRemoveFromGroup?: (groupId: string, item: string) => void;
+  onDeleteGroup?: (groupId: string, color: string) => void;
+  onRemoveFromGroup?: (groupId: string, item: [string, string]) => void;
 }
 
 const COLORS = [
@@ -121,14 +121,14 @@ export function GroupManager({
           <div className="space-y-2">
             {groups.map((group) => (
               <div
-                key={group.id}
+                key={group.name}
                 className="bg-editor-toolbar border border-editor-border rounded overflow-hidden"
               >
                 <div
-                  onClick={() => toggleGroup(group.id)}
+                  onClick={() => toggleGroup(group.name)}
                   className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-editor-bg transition-colors"
                 >
-                  {expandedGroups.has(group.id) ? (
+                  {expandedGroups.has(group.name) ? (
                     <ChevronDown className="w-4 h-4 text-gray-400" />
                   ) : (
                     <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -141,12 +141,12 @@ export function GroupManager({
 
                   <span className="text-sm text-gray-300 flex-1">{group.name}</span>
 
-                  <span className="text-xs text-gray-500">{group.items.length}</span>
+                  <span className="text-xs text-gray-500">{group.content.length}</span>
 
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteGroup?.(group.id);
+                      onDeleteGroup?.(group.name, group.color);
                     }}
                     className="p-1 hover:bg-editor-toolbar rounded transition-colors"
                   >
@@ -154,12 +154,12 @@ export function GroupManager({
                   </button>
                 </div>
 
-                {expandedGroups.has(group.id) && (
+                {expandedGroups.has(group.name) && (
                   <div className="px-3 pb-2 space-y-1">
-                    {group.items.length === 0 ? (
+                    {group.content.length === 0 ? (
                       <div className="text-xs text-gray-500 py-2">No items</div>
                     ) : (
-                      group.items.map((item, idx) => (
+                      group.content.map((item, idx) => (
                         <div
                           key={idx}
                           className="flex items-center justify-between px-2 py-1 bg-editor-bg rounded group"
@@ -168,7 +168,7 @@ export function GroupManager({
                             {item}
                           </span>
                           <button
-                            onClick={() => onRemoveFromGroup?.(group.id, item)}
+                            onClick={() => onRemoveFromGroup?.(group.name, item)}
                             className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-editor-toolbar rounded transition-all"
                           >
                             <X className="w-3 h-3 text-gray-500" />

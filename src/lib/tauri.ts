@@ -1,15 +1,15 @@
 import { invoke } from '@tauri-apps/api/core';
 import type {
-  FileInfo,
-  FileMetadata,
-  FileHash,
-  SearchOptions,
-  SearchResult,
-  DirectoryScanOptions,
-  ProjectMetadata,
-  FileRecord,
-  IndexStats,
-  DatabaseStats,
+    FileInfo,
+    FileMetadata,
+    FileHash,
+    SearchOptions,
+    SearchResult,
+    DirectoryScanOptions,
+    ProjectMetadata,
+    FileRecord,
+    IndexStats,
+    DatabaseStats, AnalysisGroup,
 } from '../types';
 
 /**
@@ -78,6 +78,22 @@ export async function movePath(from: string, to: string): Promise<void> {
 export async function calculateHash(path: string): Promise<FileHash> {
   return await invoke<FileHash>('calculate_hash', { path });
 }
+
+export async function createGroup(name: string, color: string) {
+    return await invoke<void>("create_group", {name, color})
+}
+
+
+
+export async function deleteGroup(name: string, color: string) {
+    return await invoke<void>("delete_group", {name, color})
+}
+
+export async function getGroups(): Promise<AnalysisGroup[]> {
+    return await invoke<AnalysisGroup[]>('get_groups')
+}
+
+
 
 export async function searchFiles(
   basePath: string,

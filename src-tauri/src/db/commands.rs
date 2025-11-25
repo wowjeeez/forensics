@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::RwLock;
+use crate::db::auxiliary::Group;
 use crate::index::{IndexStats, MasterIndexer, Query, QueryResult};
 
 /// Global database state
@@ -411,4 +412,43 @@ pub async fn query_indexeddb_info(
         subdirectories,
     })
 }
+
+
+#[tauri::command]
+pub async fn create_group(
+    name: String,
+    color: String,
+    state: State<'_, DatabaseState>,
+) -> Result<(), String> {
+    let state = state.get_db().await.ok_or(anyhow::Error::msg("Failed to get db".to_string())).map_err(|y| y.to_string())?;
+    let db = state.get_auxiliary_db();
+    db.create_group(name, color).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn delete_group(
+    name: String,
+    color: String,
+    state: State<'_, DatabaseState>,
+) -> Result<(), String> {
+    let state = state.get_db().await.ok_or(anyhow::Error::msg("Failed to get db".to_string())).map_err(|y| y.to_string())?;
+    let db = state.get_auxiliary_db();
+    db.delete_group(name, color).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_groups(
+    state: State<'_, DatabaseState>,
+) -> Result<Vec<Group>, String> {
+    let state = state.get_db().await.ok_or(anyhow::Error::msg("Failed to get db".to_string())).map_err(|y| y.to_string())?;
+    let db = state.get_auxiliary_db();
+    Ok(db.get_groups())
+}
+
+
+
+
+
 
