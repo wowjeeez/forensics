@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --radius: 0.3rem;
+
+  /* IntelliJ-inspired color palette */
+  --color-editor-bg: #1E1E1E;
+  --color-editor-sidebar: #2B2B2B;
+  --color-editor-toolbar: #3C3F41;
+  --color-editor-border: #323232;
+  --color-editor-selection: #214283;
+  --color-editor-highlight: #4B6EAF;
+
+  --color-ide-blue: #589DF6;
+  --color-ide-green: #6AAF50;
+  --color-ide-yellow: #FFC66D;
+  --color-ide-orange: #CC7832;
+  --color-ide-red: #E06C75;
+  --color-ide-purple: #9876AA;
+  --color-ide-cyan: #56B6C2;
+}
+
+* {
+  border-color: var(--color-editor-border);
+}
+
+body {
+  background-color: var(--color-editor-bg);
+  color: rgb(229 231 235);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #4B4B4B #2B2B2B;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: #2B2B2B;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #4B4B4B;
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #5A5A5A;
+  }
+}
