@@ -32,14 +32,21 @@ pub async fn read_file(path: String, state: State<'_, FileSystemState>) -> Resul
 
 /// Read file contents as string
 #[tauri::command]
-pub async fn read_file_as_string(path: String, state: State<'_, FileSystemState>) -> Result<String> {
+pub async fn read_file_as_string(
+    path: String,
+    state: State<'_, FileSystemState>,
+) -> Result<String> {
     let path = PathBuf::from(path);
     state.fs().read_to_string(&path).await
 }
 
 /// Write file contents
 #[tauri::command]
-pub async fn write_file(path: String, data: Vec<u8>, state: State<'_, FileSystemState>) -> Result<()> {
+pub async fn write_file(
+    path: String,
+    data: Vec<u8>,
+    state: State<'_, FileSystemState>,
+) -> Result<()> {
     let path = PathBuf::from(path);
     state.fs().write_file(&path, &data).await
 }
@@ -74,7 +81,10 @@ pub async fn get_metadata(path: String, state: State<'_, FileSystemState>) -> Re
 
 /// List directory contents (non-recursive)
 #[tauri::command]
-pub async fn list_directory(path: String, state: State<'_, FileSystemState>) -> Result<Vec<FileInfo>> {
+pub async fn list_directory(
+    path: String,
+    state: State<'_, FileSystemState>,
+) -> Result<Vec<FileInfo>> {
     let path = PathBuf::from(path);
     state.fs().list_dir(&path).await
 }

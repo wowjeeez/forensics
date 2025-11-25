@@ -1,6 +1,6 @@
 use super::schema::FileCategory;
-use std::io::{self, Read};
 use std::fs::File;
+use std::io::{self, Read};
 use std::path::Path;
 
 /// File type detection using magic bytes (like libmagic)
@@ -60,7 +60,10 @@ impl FileTypeDetector {
                 if Self::contains_sequence(bytes, b"[Content_Types].xml") {
                     // Office Open XML format
                     if Self::contains_sequence(bytes, b"xl/") {
-                        return ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", FileCategory::Document);
+                        return (
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            FileCategory::Document,
+                        );
                     } else if Self::contains_sequence(bytes, b"word/") {
                         return ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", FileCategory::Document);
                     }
@@ -76,7 +79,10 @@ impl FileTypeDetector {
 
         // Parquet
         if bytes.len() >= 4 && &bytes[0..4] == b"PAR1" {
-            return ("application/vnd.apache.parquet", FileCategory::StructuredData);
+            return (
+                "application/vnd.apache.parquet",
+                FileCategory::StructuredData,
+            );
         }
 
         // Images
@@ -165,8 +171,12 @@ impl FileTypeDetector {
                     return lines.iter().skip(1).all(|line| {
                         let commas = line.matches(',').count();
                         let tabs = line.matches('\t').count();
-                        (commas > 0 && (commas == first_commas || (commas as i32 - first_commas as i32).abs() <= 1)) ||
-                        (tabs > 0 && (tabs == first_tabs || (tabs as i32 - first_tabs as i32).abs() <= 1))
+                        (commas > 0
+                            && (commas == first_commas
+                                || (commas as i32 - first_commas as i32).abs() <= 1))
+                            || (tabs > 0
+                                && (tabs == first_tabs
+                                    || (tabs as i32 - first_tabs as i32).abs() <= 1))
                     });
                 }
             }
@@ -182,9 +192,10 @@ impl FileTypeDetector {
         }
 
         // Check for high percentage of printable ASCII
-        let printable_count = bytes.iter().filter(|&&b| {
-            b.is_ascii_graphic() || b.is_ascii_whitespace()
-        }).count();
+        let printable_count = bytes
+            .iter()
+            .filter(|&&b| b.is_ascii_graphic() || b.is_ascii_whitespace())
+            .count();
 
         let ratio = printable_count as f64 / bytes.len() as f64;
         ratio > 0.85
@@ -192,7 +203,9 @@ impl FileTypeDetector {
 
     /// Helper to check if bytes contain a sequence
     fn contains_sequence(haystack: &[u8], needle: &[u8]) -> bool {
-        haystack.windows(needle.len()).any(|window| window == needle)
+        haystack
+            .windows(needle.len())
+            .any(|window| window == needle)
     }
 }
 

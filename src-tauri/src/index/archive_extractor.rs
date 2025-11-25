@@ -1,11 +1,11 @@
 use super::archive_settings::{ArchiveFormat, ArchiveSettings, UnpackedArchiveInfo};
 use anyhow::{Context, Result};
+use flate2::read::GzDecoder;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
-use zip::ZipArchive;
 use tar::Archive as TarArchive;
-use flate2::read::GzDecoder;
+use zip::ZipArchive;
 
 /// Archive extractor that unpacks various archive formats
 pub struct ArchiveExtractor {
@@ -39,11 +39,7 @@ impl ArchiveExtractor {
 
         if let Some(max_size) = self.settings.max_archive_size {
             if size > max_size {
-                anyhow::bail!(
-                    "Archive size {} exceeds maximum {}",
-                    size,
-                    max_size
-                );
+                anyhow::bail!("Archive size {} exceeds maximum {}", size, max_size);
             }
         }
 
@@ -90,9 +86,7 @@ impl ArchiveExtractor {
         }
 
         // Check full extension (e.g., .tar.gz)
-        let filename = path.file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("");
+        let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
         if filename.ends_with(".tar.gz") {
             return Ok(ArchiveFormat::TarGz);
@@ -133,10 +127,12 @@ impl ArchiveExtractor {
     ) -> Result<PathBuf> {
         if self.settings.unpack_to_host {
             // Unpack next to the archive
-            let parent = archive_path.parent()
+            let parent = archive_path
+                .parent()
                 .ok_or_else(|| anyhow::anyhow!("Archive has no parent directory"))?;
 
-            let stem = archive_path.file_stem()
+            let stem = archive_path
+                .file_stem()
                 .and_then(|s| s.to_str())
                 .ok_or_else(|| anyhow::anyhow!("Invalid archive filename"))?;
 
@@ -147,12 +143,13 @@ impl ArchiveExtractor {
             fs::create_dir_all(&extract_base)?;
 
             // Use hash of archive path to create unique directory
-            use sha2::{Sha256, Digest};
+            use sha2::{Digest, Sha256};
             let mut hasher = Sha256::new();
             hasher.update(archive_path.to_string_lossy().as_bytes());
             let hash = format!("{:x}", hasher.finalize())[..16].to_string();
 
-            let stem = archive_path.file_stem()
+            let stem = archive_path
+                .file_stem()
                 .and_then(|s| s.to_str())
                 .unwrap_or("archive");
 
@@ -245,7 +242,8 @@ impl ArchiveExtractor {
         let mut decoder = GzDecoder::new(file);
 
         // Get output filename (remove .gz extension)
-        let stem = archive_path.file_stem()
+        let stem = archive_path
+            .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("decompressed");
 
@@ -261,8 +259,7 @@ impl ArchiveExtractor {
     fn extract_7z(&self, archive_path: &Path, extract_dir: &Path) -> Result<(usize, u64)> {
         use sevenz_rust::decompress_file;
 
-        decompress_file(archive_path, extract_dir)
-            .context("Failed to extract 7z archive")?;
+        decompress_file(archive_path, extract_dir).context("Failed to extract 7z archive")?;
 
         // Count files and calculate size
         let (file_count, total_size) = self.count_extracted_files(extract_dir)?;
@@ -295,7 +292,9 @@ impl ArchiveExtractor {
     /// Check if path is an archive based on settings
     pub fn is_archive(&self, path: &Path) -> bool {
         if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-            self.settings.archive_extensions.contains(&ext.to_lowercase())
+            self.settings
+                .archive_extensions
+                .contains(&ext.to_lowercase())
         } else {
             false
         }

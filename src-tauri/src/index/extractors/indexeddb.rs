@@ -1,6 +1,6 @@
 use super::{Extractor, ExtractorOutput};
 use crate::index::schema::{FileCategory, StructuredData};
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::path::Path;
 

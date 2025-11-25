@@ -1,6 +1,6 @@
 use super::{Extractor, ExtractorOutput};
 use crate::index::schema::{FileCategory, StructuredData};
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use std::collections::{HashMap, HashSet};
@@ -43,7 +43,11 @@ impl Extractor for XmlExtractor {
                 }
                 Ok(Event::Eof) => break,
                 Err(e) => {
-                    return Err(anyhow::anyhow!("XML parse error at position {}: {:?}", reader.buffer_position(), e));
+                    return Err(anyhow::anyhow!(
+                        "XML parse error at position {}: {:?}",
+                        reader.buffer_position(),
+                        e
+                    ));
                 }
                 _ => {}
             }

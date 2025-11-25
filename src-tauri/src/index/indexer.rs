@@ -1,22 +1,22 @@
-use super::detector::{FileTypeDetector};
+use super::archive_extractor::ArchiveExtractor;
+use super::archive_settings::ArchiveSettings;
+use super::detector::FileTypeDetector;
 use super::extractors::ExtractorRegistry;
+use super::image_preview::{ImagePreviewGenerator, PreviewConfig};
 use super::inverted::InvertedIndex;
 use super::query::QueryPlanner;
-use super::schema::{FileDocument, DocumentMetadata, ProjectDatabaseError};
+use super::schema::{DocumentMetadata, FileDocument, ProjectDatabaseError};
 use super::watcher::{ChangeDetector, FileChange};
-use super::archive_settings::ArchiveSettings;
-use super::archive_extractor::ArchiveExtractor;
-use super::image_preview::{ImagePreviewGenerator, PreviewConfig};
-use anyhow::{Result, Context, Error};
+use crate::db::AuxiliaryProjectDb;
+use anyhow::{Context, Error, Result};
 use chrono::Utc;
+use directories::ProjectDirs;
 use rayon::prelude::*;
-use sha2::{Sha256, Digest};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use directories::ProjectDirs;
-use serde::{Serialize, Deserialize};
-use crate::db::AuxiliaryProjectDb;
 
 /// Main indexing orchestrator
 /// Coordinates file detection, extraction, and indexing
@@ -116,7 +116,6 @@ impl MasterIndexer {
 
         let auxiliary_db = AuxiliaryProjectDb::init(index_dir.join("aux"))?;
 
-
         Ok(Self {
             inverted_index: Arc::new(inverted_index),
             extractor_registry: Arc::new(extractor_registry),
@@ -139,11 +138,15 @@ impl MasterIndexer {
         let open = Self::open_with_settings(
             db_path.as_path(),
             Some(ArchiveSettings::default()),
-            Some(PreviewConfig::default())
+            Some(PreviewConfig::default()),
         );
 
         if open.as_ref().err().is_some() {
-           Self::create_with_settings(db_path.as_path(), Some(ArchiveSettings::default()), Some(PreviewConfig::default()))
+            Self::create_with_settings(
+                db_path.as_path(),
+                Some(ArchiveSettings::default()),
+                Some(PreviewConfig::default()),
+            )
         } else {
             open
         }
@@ -205,7 +208,6 @@ impl MasterIndexer {
 
         let auxiliary_db = AuxiliaryProjectDb::init(index_dir.join("aux"))?;
 
-
         Ok(Self {
             inverted_index: Arc::new(inverted_index),
             extractor_registry: Arc::new(extractor_registry),
@@ -240,7 +242,11 @@ impl MasterIndexer {
             })
             .collect();
 
-        println!("Files to index: {} out of {}", files_to_index.len(), total_files);
+        println!(
+            "Files to index: {} out of {}",
+            files_to_index.len(),
+            total_files
+        );
 
         // 3. Index files in batches with memory limits
         let files_processed = Arc::new(AtomicU64::new(0));
@@ -256,9 +262,11 @@ impl MasterIndexer {
                 // Skip extremely large files to prevent crashes
                 if let Ok(metadata) = std::fs::metadata(path) {
                     if metadata.len() > MAX_FILE_SIZE {
-                        println!("Skipping large file ({}MB): {}",
+                        println!(
+                            "Skipping large file ({}MB): {}",
                             metadata.len() / (1024 * 1024),
-                            path.display());
+                            path.display()
+                        );
                         return;
                     }
                 }
@@ -269,7 +277,8 @@ impl MasterIndexer {
                     total_size.fetch_add(file_doc.metadata.size, Ordering::Relaxed);
 
                     let mut cat_map = by_category.lock();
-                    *cat_map.entry(format!("{:?}", file_doc.metadata.category))
+                    *cat_map
+                        .entry(format!("{:?}", file_doc.metadata.category))
                         .or_insert(0) += 1;
                 }
             });
@@ -316,7 +325,8 @@ impl MasterIndexer {
                     0, // Top-level nesting
                 ) {
                     // Note: The unpacked files will be indexed in subsequent scans
-                    println!("Unpacked archive {} to {}: {} files",
+                    println!(
+                        "Unpacked archive {} to {}: {} files",
                         path.display(),
                         unpacked_info.unpacked_to.display(),
                         unpacked_info.file_count
@@ -326,8 +336,7 @@ impl MasterIndexer {
         }
 
         // 2. Detect file type via magic bytes
-        let detected = FileTypeDetector::detect(path)
-            .context("Failed to detect file type")?;
+        let detected = FileTypeDetector::detect(path).context("Failed to detect file type")?;
 
         // 3. Generate image preview if it's an image
         let mut image_info = None;
@@ -343,9 +352,8 @@ impl MasterIndexer {
         let metadata = std::fs::metadata(path)?;
         let size = metadata.len();
 
-        let modified = chrono::DateTime::from(
-            metadata.modified().unwrap_or(std::time::SystemTime::now())
-        );
+        let modified =
+            chrono::DateTime::from(metadata.modified().unwrap_or(std::time::SystemTime::now()));
 
         let created = metadata.created().ok().map(chrono::DateTime::from);
 
@@ -356,37 +364,42 @@ impl MasterIndexer {
         let doc_id = Self::make_doc_id(path);
 
         // 7. Extract content using appropriate extractor
-        let mut extraction = self.extractor_registry.extract(
-            path,
-            detected.category,
-            &detected.mime_type,
-        ).unwrap_or_else(|_| {
-            // Minimal extraction if extractor fails
-            super::extractors::ExtractorOutput {
-                structured: None,
-                content: None,
-                preview: format!("File: {}", path.display()),
-                fields: std::collections::HashMap::new(),
-            }
-        });
+        let mut extraction = self
+            .extractor_registry
+            .extract(path, detected.category, &detected.mime_type)
+            .unwrap_or_else(|_| {
+                // Minimal extraction if extractor fails
+                super::extractors::ExtractorOutput {
+                    structured: None,
+                    content: None,
+                    preview: format!("File: {}", path.display()),
+                    fields: std::collections::HashMap::new(),
+                }
+            });
 
         // 8. Enhance extraction with image metadata if available
         if let Some(ref img_info) = image_info {
-            extraction.fields.insert("image_width".to_string(), img_info.width.to_string());
-            extraction.fields.insert("image_height".to_string(), img_info.height.to_string());
-            extraction.fields.insert("image_format".to_string(), img_info.format.clone());
+            extraction
+                .fields
+                .insert("image_width".to_string(), img_info.width.to_string());
+            extraction
+                .fields
+                .insert("image_height".to_string(), img_info.height.to_string());
+            extraction
+                .fields
+                .insert("image_format".to_string(), img_info.format.clone());
 
             if let Some(ref thumb_path) = img_info.thumbnail_path {
-                extraction.fields.insert("thumbnail".to_string(), thumb_path.to_string_lossy().to_string());
+                extraction.fields.insert(
+                    "thumbnail".to_string(),
+                    thumb_path.to_string_lossy().to_string(),
+                );
             }
 
             // Update preview with image info
             extraction.preview = format!(
                 "Image: {}x{} {} - {}",
-                img_info.width,
-                img_info.height,
-                img_info.format,
-                extraction.preview
+                img_info.width, img_info.height, img_info.format, extraction.preview
             );
         }
 
@@ -411,7 +424,8 @@ impl MasterIndexer {
                 mime_type: detected.mime_type,
                 category: detected.category,
                 magic_header: detected.magic_header,
-                extension: path.extension()
+                extension: path
+                    .extension()
                     .and_then(|s| s.to_str())
                     .map(|s| s.to_string()),
                 indexed: true,
@@ -494,10 +508,7 @@ impl MasterIndexer {
 
     /// Create a query planner for searching
     pub fn query_planner(&self) -> QueryPlanner {
-        QueryPlanner::new(
-            self.inverted_index.clone(),
-            self.extractor_registry.clone(),
-        )
+        QueryPlanner::new(self.inverted_index.clone(), self.extractor_registry.clone())
     }
 
     /// Get index statistics

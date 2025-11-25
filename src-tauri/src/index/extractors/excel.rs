@@ -1,7 +1,7 @@
 use super::{Extractor, ExtractorOutput};
-use crate::index::schema::{FileCategory, StructuredData, SheetInfo};
-use anyhow::{Result, Context};
-use calamine::{Reader, open_workbook, Xlsx, Data};
+use crate::index::schema::{FileCategory, SheetInfo, StructuredData};
+use anyhow::{Context, Result};
+use calamine::{open_workbook, Data, Reader, Xlsx};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -9,8 +9,7 @@ pub struct ExcelExtractor;
 
 impl Extractor for ExcelExtractor {
     fn extract(&self, path: &Path) -> Result<ExtractorOutput> {
-        let mut workbook: Xlsx<_> = open_workbook(path)
-            .context("Failed to open Excel file")?;
+        let mut workbook: Xlsx<_> = open_workbook(path).context("Failed to open Excel file")?;
 
         let mut sheets = Vec::new();
         let mut total_rows = 0u64;
@@ -25,11 +24,7 @@ impl Extractor for ExcelExtractor {
                 let headers: Vec<String> = range
                     .rows()
                     .next()
-                    .map(|row| {
-                        row.iter()
-                            .map(|cell| Self::cell_to_string(cell))
-                            .collect()
-                    })
+                    .map(|row| row.iter().map(|cell| Self::cell_to_string(cell)).collect())
                     .unwrap_or_default();
 
                 sheets.push(SheetInfo {
@@ -67,10 +62,7 @@ impl Extractor for ExcelExtractor {
         );
 
         Ok(ExtractorOutput {
-            structured: Some(StructuredData::Excel {
-                sheets,
-                total_rows,
-            }),
+            structured: Some(StructuredData::Excel { sheets, total_rows }),
             content: None, // Don't index entire spreadsheet content
             preview: preview.chars().take(500).collect(),
             fields,

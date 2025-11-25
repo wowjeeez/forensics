@@ -1,9 +1,9 @@
-mod io;
 mod db;
 mod index;
+mod io;
 
-use io::commands::FileSystemState;
 use db::DatabaseState;
+use io::commands::FileSystemState;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -49,14 +49,51 @@ pub fn run() {
             db::commands::query_sqlite_table,
             db::commands::query_leveldb_info,
             db::commands::query_indexeddb_info,
-             db::commands::create_group,
-                db::commands::get_groups,
-                db::commands::delete_group
-           // db::commands::store_file_note,
-           // db::commands::add_file_tag,
-           // db::commands::get_all_tags,
-           // db::commands::get_database_stats,
+            db::commands::create_group,
+            db::commands::get_groups,
+            db::commands::delete_group // db::commands::store_file_note,
+                                       // db::commands::add_file_tag,
+                                       // db::commands::get_all_tags,
+                                       // db::commands::get_database_stats,
         ])
+        .setup(|app| {
+                #[cfg(desktop)]
+                {
+                        use tauri::Emitter;
+                        use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+
+                        app.handle().plugin(
+                                tauri_plugin_global_shortcut::Builder::new()
+                                    .with_shortcuts([
+                                        "cmd+w",        // Close window
+                                        "cmd+q",        // Quit application
+                                        "cmd+n",        // New window
+                                        "cmd+t",        // New tab (if applicable)
+                                        "cmd+,",        // Preferences
+                                        "cmd+h",        // Hide window
+                                        "cmd+m",        // Minimize window
+                                        "cmd+c",        // Copy
+                                        "cmd+v",        // Paste
+                                        "cmd+x",        // Cut
+                                        "cmd+z",        // Undo
+                                        "cmd+shift+z",  // Redo
+                                        "cmd+a",        // Select all
+                                        "cmd+f",        // Find
+                                    ])?
+                                    .with_handler(|app, shortcut, event| {
+                                            if event.state == ShortcutState::Pressed  {
+                                                    if shortcut.mods.contains(Modifiers::SUPER) && shortcut.key == Code::KeyW {
+                                                         println!("Closing tab");
+                                                            app.emit("closeTab", ()).unwrap();
+                                                    }
+                                            }
+                                    })
+                                    .build(),
+                        )?;
+                }
+
+                Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

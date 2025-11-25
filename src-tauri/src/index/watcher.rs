@@ -1,11 +1,11 @@
-use sha2::{Sha256, Digest};
+use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
-use chrono::{DateTime, Utc};
-use serde::{Serialize, Deserialize};
-use anyhow::{Result, Context};
 
 /// Change detector for incremental indexing
 /// Uses SHA256 hashing and mtime to detect file changes
@@ -45,8 +45,8 @@ impl ChangeDetector {
     pub fn load(cache_path: &Path) -> Result<Self> {
         if cache_path.exists() {
             let data = fs::read(cache_path).context("Failed to read cache file")?;
-            let cache: HashMap<PathBuf, FileState> = bincode::deserialize(&data)
-                .context("Failed to deserialize cache")?;
+            let cache: HashMap<PathBuf, FileState> =
+                bincode::deserialize(&data).context("Failed to deserialize cache")?;
             Ok(Self { cache })
         } else {
             Ok(Self::new())
@@ -55,8 +55,7 @@ impl ChangeDetector {
 
     /// Save cache to disk
     pub fn save(&self, cache_path: &Path) -> Result<()> {
-        let data = bincode::serialize(&self.cache)
-            .context("Failed to serialize cache")?;
+        let data = bincode::serialize(&self.cache).context("Failed to serialize cache")?;
 
         if let Some(parent) = cache_path.parent() {
             fs::create_dir_all(parent)?;
@@ -84,9 +83,8 @@ impl ChangeDetector {
         }
 
         let size = metadata.len();
-        let modified = Self::system_time_to_datetime(
-            metadata.modified().unwrap_or(SystemTime::now())
-        );
+        let modified =
+            Self::system_time_to_datetime(metadata.modified().unwrap_or(SystemTime::now()));
 
         // Check if we have this file cached
         if let Some(cached_state) = self.cache.get(path) {
@@ -101,42 +99,49 @@ impl ChangeDetector {
             if hash == cached_state.hash {
                 // False positive - file unchanged but mtime updated
                 // Update cache with new mtime
-                self.cache.insert(path.to_path_buf(), FileState {
-                    path: path.to_path_buf(),
-                    size,
-                    modified,
-                    hash,
-                });
+                self.cache.insert(
+                    path.to_path_buf(),
+                    FileState {
+                        path: path.to_path_buf(),
+                        size,
+                        modified,
+                        hash,
+                    },
+                );
                 return Ok(FileChange::Unchanged(path.to_path_buf()));
             }
 
             // File actually modified
-            self.cache.insert(path.to_path_buf(), FileState {
-                path: path.to_path_buf(),
-                size,
-                modified,
-                hash: hash.clone(),
-            });
+            self.cache.insert(
+                path.to_path_buf(),
+                FileState {
+                    path: path.to_path_buf(),
+                    size,
+                    modified,
+                    hash: hash.clone(),
+                },
+            );
             return Ok(FileChange::Modified(path.to_path_buf()));
         }
 
         // New file
         let hash = Self::calculate_hash(path)?;
-        self.cache.insert(path.to_path_buf(), FileState {
-            path: path.to_path_buf(),
-            size,
-            modified,
-            hash,
-        });
+        self.cache.insert(
+            path.to_path_buf(),
+            FileState {
+                path: path.to_path_buf(),
+                size,
+                modified,
+                hash,
+            },
+        );
 
         Ok(FileChange::Added(path.to_path_buf()))
     }
 
     /// Batch detect changes for multiple files
     pub fn detect_changes(&mut self, paths: &[PathBuf]) -> Result<Vec<FileChange>> {
-        paths.iter()
-            .map(|p| self.detect_change(p))
-            .collect()
+        paths.iter().map(|p| self.detect_change(p)).collect()
     }
 
     /// Calculate SHA256 hash of a file
@@ -182,8 +187,8 @@ impl Default for ChangeDetector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
     use std::io::Write;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_detect_new_file() {

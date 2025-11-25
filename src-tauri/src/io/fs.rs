@@ -59,7 +59,11 @@ pub trait FileSystem: Send + Sync {
     async fn search_files(&self, base_path: &Path, options: SearchOptions) -> Result<Vec<PathBuf>>;
 
     /// Search file contents
-    async fn search_content(&self, base_path: &Path, options: SearchOptions) -> Result<Vec<SearchResult>>;
+    async fn search_content(
+        &self,
+        base_path: &Path,
+        options: SearchOptions,
+    ) -> Result<Vec<SearchResult>>;
 
     /// Read file in chunks (for large files)
     async fn read_file_chunked(&self, path: &Path, chunk_size: usize) -> Result<Vec<Vec<u8>>>;

@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
-use image::{ImageFormat, DynamicImage, ImageError, GenericImageView};
+use image::{DynamicImage, GenericImageView, ImageError, ImageFormat};
+use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
-use std::io::{BufWriter, BufReader};
+use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
-use serde::{Serialize, Deserialize};
 
 /// Image preview configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,11 +96,12 @@ impl ImagePreviewGenerator {
         let format = self.detect_format(image_path)?;
 
         // Generate thumbnail
-        let thumbnail_path = if width > self.config.thumbnail_size || height > self.config.thumbnail_size {
-            Some(self.create_thumbnail(&img, image_path)?)
-        } else {
-            None
-        };
+        let thumbnail_path =
+            if width > self.config.thumbnail_size || height > self.config.thumbnail_size {
+                Some(self.create_thumbnail(&img, image_path)?)
+            } else {
+                None
+            };
 
         Ok(ImageInfo {
             width,
@@ -122,10 +123,15 @@ impl ImagePreviewGenerator {
                 if self.is_webp(path) {
                     self.load_webp(path)
                 } else {
-                    Err(ImageError::Unsupported(image::error::UnsupportedError::from_format_and_kind(
-                        image::error::ImageFormatHint::Unknown,
-                        image::error::UnsupportedErrorKind::Format(image::error::ImageFormatHint::Unknown),
-                    )).into())
+                    Err(ImageError::Unsupported(
+                        image::error::UnsupportedError::from_format_and_kind(
+                            image::error::ImageFormatHint::Unknown,
+                            image::error::UnsupportedErrorKind::Format(
+                                image::error::ImageFormatHint::Unknown,
+                            ),
+                        ),
+                    )
+                    .into())
                 }
             }
             Err(e) => Err(e.into()),
@@ -136,7 +142,8 @@ impl ImagePreviewGenerator {
     fn load_webp(&self, path: &Path) -> Result<DynamicImage> {
         let data = fs::read(path)?;
         let decoder = webp::Decoder::new(&data);
-        let decoded = decoder.decode()
+        let decoded = decoder
+            .decode()
             .ok_or_else(|| anyhow::anyhow!("Failed to decode WebP"))?;
 
         // Convert to DynamicImage
@@ -148,7 +155,7 @@ impl ImagePreviewGenerator {
 
         Ok(DynamicImage::ImageRgba8(
             image::RgbaImage::from_raw(width, height, rgba_bytes)
-                .ok_or_else(|| anyhow::anyhow!("Failed to create RGBA image"))?
+                .ok_or_else(|| anyhow::anyhow!("Failed to create RGBA image"))?,
         ))
     }
 
@@ -187,7 +194,8 @@ impl ImagePreviewGenerator {
         let file = File::create(&thumbnail_path)?;
         let mut writer = BufWriter::new(file);
 
-        thumbnail.write_to(&mut writer, ImageFormat::Jpeg)
+        thumbnail
+            .write_to(&mut writer, ImageFormat::Jpeg)
             .context("Failed to write thumbnail")?;
 
         Ok(thumbnail_path)
@@ -195,7 +203,7 @@ impl ImagePreviewGenerator {
 
     /// Generate thumbnail filename
     fn generate_thumbnail_filename(&self, original_path: &Path) -> Result<String> {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
 
         let mut hasher = Sha256::new();
         hasher.update(original_path.to_string_lossy().as_bytes());

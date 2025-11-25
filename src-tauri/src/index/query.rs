@@ -1,8 +1,8 @@
-use super::inverted::{InvertedIndex, SearchHit};
 use super::extractors::ExtractorRegistry;
+use super::inverted::{InvertedIndex, SearchHit};
 use super::schema::{FileCategory, TypedHit};
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -18,10 +18,7 @@ pub struct QueryPlanner {
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum Query {
     /// Full-text search across all indexed content
-    FullText {
-        query: String,
-        limit: Option<usize>,
-    },
+    FullText { query: String, limit: Option<usize> },
 
     /// Filter by metadata
     Metadata {
@@ -72,7 +69,10 @@ pub struct QueryResult {
 }
 
 impl QueryPlanner {
-    pub fn new(inverted_index: Arc<InvertedIndex>, extractor_registry: Arc<ExtractorRegistry>) -> Self {
+    pub fn new(
+        inverted_index: Arc<InvertedIndex>,
+        extractor_registry: Arc<ExtractorRegistry>,
+    ) -> Self {
         Self {
             inverted_index,
             extractor_registry,
@@ -87,18 +87,23 @@ impl QueryPlanner {
             Query::FullText { query, limit } => {
                 self.execute_fulltext(query, limit.unwrap_or(100))?
             }
-            Query::Metadata { category, mime_type, min_size, max_size, extension } => {
-                self.execute_metadata_filter(
-                    category.as_ref(),
-                    mime_type.as_deref(),
-                    *min_size,
-                    *max_size,
-                    extension.as_deref(),
-                )?
-            }
-            Query::Structured { structured_type, query } => {
-                self.execute_structured(structured_type, query)?
-            }
+            Query::Metadata {
+                category,
+                mime_type,
+                min_size,
+                max_size,
+                extension,
+            } => self.execute_metadata_filter(
+                category.as_ref(),
+                mime_type.as_deref(),
+                *min_size,
+                *max_size,
+                extension.as_deref(),
+            )?,
+            Query::Structured {
+                structured_type,
+                query,
+            } => self.execute_structured(structured_type, query)?,
             Query::Combined { metadata, fulltext } => {
                 // Execute both queries and intersect results
                 let metadata_results = self.execute(metadata)?;
@@ -119,7 +124,10 @@ impl QueryPlanner {
     /// Execute full-text search
     fn execute_fulltext(&self, query: &str, limit: usize) -> Result<Vec<TypedHit>> {
         let search_hits = self.inverted_index.search(query, limit)?;
-        Ok(search_hits.into_iter().map(Self::search_hit_to_typed).collect())
+        Ok(search_hits
+            .into_iter()
+            .map(Self::search_hit_to_typed)
+            .collect())
     }
 
     /// Execute metadata filter
@@ -198,7 +206,12 @@ impl QueryPlanner {
 
     /// Lazy deep extraction on demand
     /// When a user wants detailed data from a specific file, extract it
-    pub fn extract_deep(&self, path: &PathBuf, category: FileCategory, mime_type: &str) -> Result<String> {
+    pub fn extract_deep(
+        &self,
+        path: &PathBuf,
+        category: FileCategory,
+        mime_type: &str,
+    ) -> Result<String> {
         let output = self.extractor_registry.extract(path, category, mime_type)?;
 
         // Return formatted extraction result

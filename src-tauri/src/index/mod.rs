@@ -8,24 +8,27 @@
 // 5. Incremental indexing with change detection
 // 6. Lazy deep extraction on demand
 
-pub mod schema;
+pub mod archive_extractor;
+pub mod archive_settings;
 pub mod detector;
 pub mod extractors;
+pub mod image_preview;
+pub mod indexer;
 pub mod inverted;
 pub mod query;
+pub mod schema;
 pub mod watcher;
-pub mod indexer;
-pub mod archive_settings;
-pub mod archive_extractor;
-pub mod image_preview;
 
-pub use schema::{FileDocument, DocumentMetadata, StructuredData, FileCategory, TypedHit, IndexStats as SchemaIndexStats};
-pub use detector::{FileTypeDetector, DetectedFileType};
-pub use extractors::{Extractor, ExtractorRegistry};
-pub use inverted::{InvertedIndex, SearchHit};
-pub use query::{QueryPlanner, Query, QueryResult};
-pub use watcher::{ChangeDetector, FileChange};
-pub use indexer::{MasterIndexer, IndexProgress, IndexPhase, IndexStats};
-pub use archive_settings::{ArchiveSettings, ArchiveFormat, UnpackedArchiveInfo};
 pub use archive_extractor::ArchiveExtractor;
-pub use image_preview::{ImagePreviewGenerator, ImageInfo, PreviewConfig};
+pub use archive_settings::{ArchiveFormat, ArchiveSettings, UnpackedArchiveInfo};
+pub use detector::{DetectedFileType, FileTypeDetector};
+pub use extractors::{Extractor, ExtractorRegistry};
+pub use image_preview::{ImageInfo, ImagePreviewGenerator, PreviewConfig};
+pub use indexer::{IndexPhase, IndexProgress, IndexStats, MasterIndexer};
+pub use inverted::{InvertedIndex, SearchHit};
+pub use query::{Query, QueryPlanner, QueryResult};
+pub use schema::{
+    DocumentMetadata, FileCategory, FileDocument, IndexStats as SchemaIndexStats, StructuredData,
+    TypedHit,
+};
+pub use watcher::{ChangeDetector, FileChange};

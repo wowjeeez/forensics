@@ -1,5 +1,5 @@
-pub mod commands;
 mod auxiliary;
+pub mod commands;
 
-pub use commands::DatabaseState;
 pub use auxiliary::AuxiliaryProjectDb;
+pub use commands::DatabaseState;

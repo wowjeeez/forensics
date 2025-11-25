@@ -1,28 +1,28 @@
 // Type-specific extractors for different file formats
 // Each extractor knows how to extract searchable data from its file type
 
-use super::schema::{StructuredData, FileCategory};
+use super::schema::{FileCategory, StructuredData};
 use anyhow::Result;
-use std::path::Path;
 use std::collections::HashMap;
+use std::path::Path;
 
-mod sqlite;
-mod json;
 mod csv_extractor;
 mod excel;
-mod xml;
-mod text;
-mod leveldb;
 mod indexeddb;
+mod json;
+mod leveldb;
+mod sqlite;
+mod text;
+mod xml;
 
-pub use sqlite::SqliteExtractor;
-pub use json::JsonExtractor;
 pub use csv_extractor::CsvExtractor;
 pub use excel::ExcelExtractor;
-pub use xml::XmlExtractor;
-pub use text::TextExtractor;
-pub use leveldb::LevelDbExtractor;
 pub use indexeddb::IndexedDbExtractor;
+pub use json::JsonExtractor;
+pub use leveldb::LevelDbExtractor;
+pub use sqlite::SqliteExtractor;
+pub use text::TextExtractor;
+pub use xml::XmlExtractor;
 
 /// Trait for file content extractors
 pub trait Extractor: Send + Sync {
@@ -88,7 +88,11 @@ impl ExtractorRegistry {
     }
 
     /// Find an extractor for a file
-    pub fn find_extractor(&self, category: FileCategory, mime_type: &str) -> Option<&dyn Extractor> {
+    pub fn find_extractor(
+        &self,
+        category: FileCategory,
+        mime_type: &str,
+    ) -> Option<&dyn Extractor> {
         self.extractors
             .iter()
             .find(|e| e.can_handle(category, mime_type))
@@ -96,7 +100,12 @@ impl ExtractorRegistry {
     }
 
     /// Extract data using the appropriate extractor
-    pub fn extract(&self, path: &Path, category: FileCategory, mime_type: &str) -> Result<ExtractorOutput> {
+    pub fn extract(
+        &self,
+        path: &Path,
+        category: FileCategory,
+        mime_type: &str,
+    ) -> Result<ExtractorOutput> {
         if let Some(extractor) = self.find_extractor(category, mime_type) {
             extractor.extract(path)
         } else {

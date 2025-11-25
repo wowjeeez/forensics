@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use log::info;
 use md5::Md5;
-use sha2::Sha256;
+use rayon::prelude::*;
 use sha2::Digest;
+use sha2::Sha256;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
-use log::info;
 use tokio::fs;
 use tokio::io::AsyncReadExt;
-use rayon::prelude::*;
 
 use super::error::{FileSystemError, Result};
 use super::fs::FileSystem;
@@ -67,8 +67,14 @@ impl LocalFileSystem {
             .and_then(Self::system_time_to_datetime)
             .unwrap_or_else(|| Utc::now());
 
-        let created = metadata.created().ok().and_then(Self::system_time_to_datetime);
-        let accessed = metadata.accessed().ok().and_then(Self::system_time_to_datetime);
+        let created = metadata
+            .created()
+            .ok()
+            .and_then(Self::system_time_to_datetime);
+        let accessed = metadata
+            .accessed()
+            .ok()
+            .and_then(Self::system_time_to_datetime);
 
         let extension = path
             .extension()
@@ -183,8 +189,14 @@ impl LocalFileSystem {
                     file_type: FileType::Directory,
                     size: None,
                     modified: Some(modified),
-                    created: metadata.created().ok().and_then(Self::system_time_to_datetime),
-                    accessed: metadata.accessed().ok().and_then(Self::system_time_to_datetime),
+                    created: metadata
+                        .created()
+                        .ok()
+                        .and_then(Self::system_time_to_datetime),
+                    accessed: metadata
+                        .accessed()
+                        .ok()
+                        .and_then(Self::system_time_to_datetime),
                     permissions: Some(Self::extract_permissions(&metadata)),
                     children: Some(Vec::new()),
                 })
@@ -238,8 +250,8 @@ impl LocalFileSystem {
                         .unwrap_or_else(|| Utc::now());
 
                     let mut hasher = Md5::new();
-                hasher.update(path.to_string_lossy().as_bytes());
-                let id = format!("{:x}", hasher.finalize());
+                    hasher.update(path.to_string_lossy().as_bytes());
+                    let id = format!("{:x}", hasher.finalize());
 
                     let file_type = if metadata.is_symlink() {
                         FileType::Symlink
@@ -254,8 +266,14 @@ impl LocalFileSystem {
                         file_type,
                         size: Some(metadata.len()),
                         modified: Some(modified),
-                        created: metadata.created().ok().and_then(Self::system_time_to_datetime),
-                        accessed: metadata.accessed().ok().and_then(Self::system_time_to_datetime),
+                        created: metadata
+                            .created()
+                            .ok()
+                            .and_then(Self::system_time_to_datetime),
+                        accessed: metadata
+                            .accessed()
+                            .ok()
+                            .and_then(Self::system_time_to_datetime),
                         permissions: Some(Self::extract_permissions(&metadata)),
                         children: None,
                     })
@@ -303,7 +321,9 @@ impl FileSystem for LocalFileSystem {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).await?;
         }
-        fs::write(path, data).await.map_err(FileSystemError::IoError)
+        fs::write(path, data)
+            .await
+            .map_err(FileSystemError::IoError)
     }
 
     async fn exists(&self, path: &Path) -> Result<bool> {
@@ -354,7 +374,10 @@ impl FileSystem for LocalFileSystem {
                 path: path.to_path_buf(),
             });
         }
-        info!("Scanning directory: {:?} (parallel: {})", path, options.parallel);
+        info!(
+            "Scanning directory: {:?} (parallel: {})",
+            path, options.parallel
+        );
 
         if options.parallel {
             // Use rayon for parallel scanning
@@ -385,7 +408,9 @@ impl FileSystem for LocalFileSystem {
                 path: path.to_path_buf(),
             });
         }
-        fs::remove_file(path).await.map_err(FileSystemError::IoError)
+        fs::remove_file(path)
+            .await
+            .map_err(FileSystemError::IoError)
     }
 
     async fn delete_dir(&self, path: &Path) -> Result<()> {
@@ -457,7 +482,11 @@ impl FileSystem for LocalFileSystem {
         .map_err(|e| FileSystemError::Unknown(e.to_string()))?
     }
 
-    async fn search_content(&self, base_path: &Path, options: SearchOptions) -> Result<Vec<SearchResult>> {
+    async fn search_content(
+        &self,
+        base_path: &Path,
+        options: SearchOptions,
+    ) -> Result<Vec<SearchResult>> {
         let base_path = base_path.to_path_buf();
         let opts = options.clone();
 
@@ -569,7 +598,8 @@ impl LocalFileSystem {
                     } else if options.case_sensitive {
                         name.contains(&options.pattern)
                     } else {
-                        name.to_lowercase().contains(&options.pattern.to_lowercase())
+                        name.to_lowercase()
+                            .contains(&options.pattern.to_lowercase())
                     };
 
                     if matches {
@@ -625,7 +655,8 @@ impl LocalFileSystem {
                         } else if options.case_sensitive {
                             line.contains(&options.pattern)
                         } else {
-                            line.to_lowercase().contains(&options.pattern.to_lowercase())
+                            line.to_lowercase()
+                                .contains(&options.pattern.to_lowercase())
                         };
 
                         if matches {

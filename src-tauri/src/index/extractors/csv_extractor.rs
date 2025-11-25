@@ -1,6 +1,6 @@
 use super::{Extractor, ExtractorOutput};
-use crate::index::schema::{FileCategory, StructuredData, ColumnSchema};
-use anyhow::{Result, Context};
+use crate::index::schema::{ColumnSchema, FileCategory, StructuredData};
+use anyhow::{Context, Result};
 use csv::ReaderBuilder;
 use std::collections::HashMap;
 use std::fs::File;
@@ -75,9 +75,7 @@ impl Extractor for CsvExtractor {
 impl CsvExtractor {
     fn detect_delimiter(&self, path: &Path) -> Result<u8> {
         let file = File::open(path)?;
-        let mut reader = ReaderBuilder::new()
-            .has_headers(false)
-            .from_reader(file);
+        let mut reader = ReaderBuilder::new().has_headers(false).from_reader(file);
 
         if let Some(result) = reader.records().next() {
             let record = result?;

@@ -1,6 +1,6 @@
 use super::{Extractor, ExtractorOutput};
-use crate::index::schema::{FileCategory, StructuredData, JsonPath, JsonValueType};
-use anyhow::{Result, Context};
+use crate::index::schema::{FileCategory, JsonPath, JsonValueType, StructuredData};
+use anyhow::{Context, Result};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
@@ -140,7 +140,13 @@ impl JsonExtractor {
         let mut object_count = 0;
         let mut array_count = 0;
 
-        self.analyze_recursive(value, 0, &mut max_depth, &mut object_count, &mut array_count);
+        self.analyze_recursive(
+            value,
+            0,
+            &mut max_depth,
+            &mut object_count,
+            &mut array_count,
+        );
 
         (max_depth, object_count, array_count)
     }

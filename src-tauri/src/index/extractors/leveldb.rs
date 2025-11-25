@@ -1,6 +1,6 @@
 use super::{Extractor, ExtractorOutput};
 use crate::index::schema::{FileCategory, StructuredData};
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -29,8 +29,7 @@ impl Extractor for LevelDbExtractor {
 
         let preview = format!(
             "LevelDB database: ~{} keys, ~{} bytes",
-            key_count,
-            approximate_size
+            key_count, approximate_size
         );
 
         Ok(ExtractorOutput {

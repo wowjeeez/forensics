@@ -1,13 +1,13 @@
-use super::schema::{FileDocument, DocumentMetadata, FileCategory, TypedHit};
-use anyhow::{Result, Context};
+use super::schema::{DocumentMetadata, FileCategory, FileDocument, TypedHit};
+use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tantivy::schema::*;
 use tantivy::collector::TopDocs;
-use tantivy::query::QueryParser;
-use tantivy::{doc, Index, IndexWriter, Searcher, TantivyDocument};
 use tantivy::directory::MmapDirectory;
-use serde::{Serialize, Deserialize};
+use tantivy::query::QueryParser;
+use tantivy::schema::*;
+use tantivy::{doc, Index, IndexWriter, Searcher, TantivyDocument};
 
 /// Inverted index using Tantivy
 /// Provides lightning-fast full-text search and filtering
@@ -36,13 +36,12 @@ impl InvertedIndex {
         let schema = Self::build_schema();
 
         // Create index
-        let dir = MmapDirectory::open(index_dir)
-            .context("Failed to open index directory")?;
-        let index = Index::open_or_create(dir, schema.clone())
-            .context("Failed to create index")?;
+        let dir = MmapDirectory::open(index_dir).context("Failed to open index directory")?;
+        let index = Index::open_or_create(dir, schema.clone()).context("Failed to create index")?;
 
         // Create writer with 128MB heap
-        let writer = index.writer(128_000_000)
+        let writer = index
+            .writer(128_000_000)
             .context("Failed to create index writer")?;
 
         Ok(Self {
@@ -55,12 +54,11 @@ impl InvertedIndex {
     /// Open an existing index
     pub fn open(index_dir: &Path) -> Result<Self> {
         let schema = Self::build_schema();
-        let dir = MmapDirectory::open(index_dir)
-            .context("Failed to open index directory")?;
-        let index = Index::open(dir)
-            .context("Failed to open index")?;
+        let dir = MmapDirectory::open(index_dir).context("Failed to open index directory")?;
+        let index = Index::open(dir).context("Failed to open index")?;
 
-        let writer = index.writer(128_000_000)
+        let writer = index
+            .writer(128_000_000)
             .context("Failed to create index writer")?;
 
         Ok(Self {
@@ -119,10 +117,16 @@ impl InvertedIndex {
         doc.add_text(id, &file_doc.id);
         doc.add_text(path, &file_doc.metadata.path.to_string_lossy());
         doc.add_u64(size, file_doc.metadata.size);
-        doc.add_date(modified, tantivy::DateTime::from_timestamp_secs(file_doc.metadata.modified.timestamp()));
+        doc.add_date(
+            modified,
+            tantivy::DateTime::from_timestamp_secs(file_doc.metadata.modified.timestamp()),
+        );
         doc.add_text(hash, &file_doc.metadata.hash);
         doc.add_text(mime_type, &file_doc.metadata.mime_type);
-        doc.add_text(category, &format!("{:?}", file_doc.metadata.category).to_lowercase());
+        doc.add_text(
+            category,
+            &format!("{:?}", file_doc.metadata.category).to_lowercase(),
+        );
 
         if let Some(ext) = &file_doc.metadata.extension {
             doc.add_text(extension, ext);
@@ -149,7 +153,11 @@ impl InvertedIndex {
     }
 
     /// Add structured data fields to document
-    fn add_structured_fields(&self, doc: &mut TantivyDocument, structured: &super::schema::StructuredData) -> Result<()> {
+    fn add_structured_fields(
+        &self,
+        doc: &mut TantivyDocument,
+        structured: &super::schema::StructuredData,
+    ) -> Result<()> {
         use super::schema::StructuredData;
 
         match structured {
@@ -245,17 +253,20 @@ impl InvertedIndex {
         let category_field = self.schema.get_field("category").unwrap();
         let preview_field = self.schema.get_field("preview").unwrap();
 
-        let id = doc.get_first(id_field)
+        let id = doc
+            .get_first(id_field)
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
 
-        let path_str = doc.get_first(path_field)
+        let path_str = doc
+            .get_first(path_field)
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
 
-        let category_str = doc.get_first(category_field)
+        let category_str = doc
+            .get_first(category_field)
             .and_then(|v| v.as_str())
             .unwrap_or("unknown");
 
@@ -270,7 +281,8 @@ impl InvertedIndex {
             _ => FileCategory::Unknown,
         };
 
-        let snippet = doc.get_first(preview_field)
+        let snippet = doc
+            .get_first(preview_field)
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();

@@ -11,6 +11,7 @@ import { useFileSystem } from './hooks/useFileSystem';
 import { FileInfo, AnalysisGroup, IndexStats } from './types';
 import { PreviewFile } from './components/viewers/PreviewFile.tsx';
 import {scanDirectory, createProjectDatabase, indexDirectory, createGroup, getGroups, deleteGroup} from './lib/tauri';
+import {listen} from "@tauri-apps/api/event";
 
 function App() {
   const { files, setFiles, tabs, activeTabId, setActiveTabId, openFile, closeTab } = useFileSystem();
@@ -28,6 +29,11 @@ function App() {
   const [isIndexing, setIsIndexing] = useState(false);
   const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
   const [indexError, setIndexError] = useState<string | null>(null);
+
+  listen("closeTab", () => {
+      console.log("closeTab event received")
+      activeTabId && closeTab(activeTabId)
+  })
 
   const mockTimelineEvents = [
     {

@@ -1,8 +1,6 @@
 use super::{Extractor, ExtractorOutput};
-use crate::index::schema::{
-    FileCategory, StructuredData, TableInfo, ColumnInfo,
-};
-use anyhow::{Result, Context};
+use crate::index::schema::{ColumnInfo, FileCategory, StructuredData, TableInfo};
+use anyhow::{Context, Result};
 use rusqlite::{Connection, OpenFlags};
 use std::collections::HashMap;
 use std::path::Path;

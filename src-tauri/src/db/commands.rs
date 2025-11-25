@@ -1,10 +1,10 @@
+use crate::db::auxiliary::Group;
+use crate::index::{IndexStats, MasterIndexer, Query, QueryResult};
 use crate::io::types::FileInfo;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::State;
 use tokio::sync::RwLock;
-use crate::db::auxiliary::Group;
-use crate::index::{IndexStats, MasterIndexer, Query, QueryResult};
 
 /// Global database state
 pub struct DatabaseState {
@@ -33,7 +33,6 @@ pub async fn create_project_database(
     evidence_path: String,
     state: State<'_, DatabaseState>,
 ) -> Result<String, String> {
-
     let path = PathBuf::from(&evidence_path);
 
     match MasterIndexer::get_or_init_from_project_path(&path) {
@@ -46,9 +45,7 @@ pub async fn create_project_database(
 }
 
 #[tauri::command]
-pub async fn get_project_metadata(
-    state: State<'_, DatabaseState>,
-) -> Result<IndexStats, String> {
+pub async fn get_project_metadata(state: State<'_, DatabaseState>) -> Result<IndexStats, String> {
     let db = state.get_db().await.ok_or("No database open")?;
     db.stats().map_err(|e| e.to_string())
 }
@@ -59,7 +56,9 @@ pub async fn index_directory(
     state: State<'_, DatabaseState>,
 ) -> Result<IndexStats, String> {
     let db = state.get_db().await.ok_or("No database open")?;
-    let index = db.index_directory(file_tree.path.as_path()).map_err(|x| x.to_string())?;
+    let index = db
+        .index_directory(file_tree.path.as_path())
+        .map_err(|x| x.to_string())?;
     Ok(index)
 }
 
@@ -70,10 +69,8 @@ pub async fn search_database(
 ) -> Result<QueryResult, String> {
     let db = state.get_db().await.ok_or("No database open")?;
     let qp = db.query_planner();
-    qp.execute(&query)
-        .map_err(|e| e.to_string())
+    qp.execute(&query).map_err(|e| e.to_string())
 }
-
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -113,9 +110,7 @@ pub struct SqliteDatabaseInfo {
 }
 
 #[tauri::command]
-pub async fn query_sqlite_info(
-    db_path: String,
-) -> Result<SqliteDatabaseInfo, String> {
+pub async fn query_sqlite_info(db_path: String) -> Result<SqliteDatabaseInfo, String> {
     use rusqlite::{Connection, OpenFlags};
     use std::path::Path;
 
@@ -199,9 +194,11 @@ pub async fn query_sqlite_info(
             .map_err(|e| e.to_string())?;
 
         let row_count: i64 = conn
-            .query_row(&format!("SELECT COUNT(*) FROM '{}'", table_name), [], |row| {
-                row.get(0)
-            })
+            .query_row(
+                &format!("SELECT COUNT(*) FROM '{}'", table_name),
+                [],
+                |row| row.get(0),
+            )
             .unwrap_or(0);
 
         let mut idx_stmt = conn
@@ -304,9 +301,7 @@ pub struct LevelDbInfo {
 }
 
 #[tauri::command]
-pub async fn query_leveldb_info(
-    db_path: String,
-) -> Result<LevelDbInfo, String> {
+pub async fn query_leveldb_info(db_path: String) -> Result<LevelDbInfo, String> {
     use std::path::Path;
 
     let path = Path::new(&db_path);
@@ -349,9 +344,7 @@ pub struct IndexedDbInfo {
 }
 
 #[tauri::command]
-pub async fn query_indexeddb_info(
-    db_path: String,
-) -> Result<IndexedDbInfo, String> {
+pub async fn query_indexeddb_info(db_path: String) -> Result<IndexedDbInfo, String> {
     use std::path::Path;
 
     let path = Path::new(&db_path);
@@ -413,14 +406,17 @@ pub async fn query_indexeddb_info(
     })
 }
 
-
 #[tauri::command]
 pub async fn create_group(
     name: String,
     color: String,
     state: State<'_, DatabaseState>,
 ) -> Result<(), String> {
-    let state = state.get_db().await.ok_or(anyhow::Error::msg("Failed to get db".to_string())).map_err(|y| y.to_string())?;
+    let state = state
+        .get_db()
+        .await
+        .ok_or(anyhow::Error::msg("Failed to get db".to_string()))
+        .map_err(|y| y.to_string())?;
     let db = state.get_auxiliary_db();
     db.create_group(name, color).map_err(|e| e.to_string())?;
     Ok(())
@@ -432,23 +428,23 @@ pub async fn delete_group(
     color: String,
     state: State<'_, DatabaseState>,
 ) -> Result<(), String> {
-    let state = state.get_db().await.ok_or(anyhow::Error::msg("Failed to get db".to_string())).map_err(|y| y.to_string())?;
+    let state = state
+        .get_db()
+        .await
+        .ok_or(anyhow::Error::msg("Failed to get db".to_string()))
+        .map_err(|y| y.to_string())?;
     let db = state.get_auxiliary_db();
     db.delete_group(name, color).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn get_groups(
-    state: State<'_, DatabaseState>,
-) -> Result<Vec<Group>, String> {
-    let state = state.get_db().await.ok_or(anyhow::Error::msg("Failed to get db".to_string())).map_err(|y| y.to_string())?;
+pub async fn get_groups(state: State<'_, DatabaseState>) -> Result<Vec<Group>, String> {
+    let state = state
+        .get_db()
+        .await
+        .ok_or(anyhow::Error::msg("Failed to get db".to_string()))
+        .map_err(|y| y.to_string())?;
     let db = state.get_auxiliary_db();
     Ok(db.get_groups())
 }
-
-
-
-
-
-
