@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X, Database, Check, Loader2, AlertTriangle } from 'lucide-react';
 
 export interface IndexStats {
@@ -20,6 +21,21 @@ export function IndexingModal({
   error,
   onClose,
 }: IndexingModalProps) {
+  const isComplete = !isIndexing && stats;
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isIndexing) {
+        onClose();
+      } else if (e.key === 'Enter' && isComplete) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isIndexing, isComplete, onClose]);
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -40,8 +56,6 @@ export function IndexingModal({
   const progress = stats
     ? (stats.indexedFiles / stats.totalFiles) * 100
     : 0;
-
-  const isComplete = !isIndexing && stats;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

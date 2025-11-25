@@ -56,59 +56,6 @@ pub fn run() {
                                        // db::commands::get_all_tags,
                                        // db::commands::get_database_stats,
         ])
-        .setup(|app| {
-                #[cfg(desktop)]
-                {
-                        use tauri::{Emitter, Manager};
-                        use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
-
-                        app.handle().plugin(
-                                tauri_plugin_global_shortcut::Builder::new()
-                                    .with_shortcuts([
-                                        "cmd+w",        // Close window
-                                        "cmd+q",        // Quit application
-                                        "cmd+n",        // New window
-                                        "cmd+t",        // New tab (if applicable)
-                                        "cmd+,",        // Preferences
-                                        "cmd+h",        // Hide window
-                                        "cmd+m",        // Minimize window
-                                        "cmd+c",        // Copy
-                                        "cmd+v",        // Paste
-                                        "cmd+x",        // Cut
-                                        "cmd+z",        // Undo
-                                        "cmd+shift+z",  // Redo
-                                        "cmd+a",        // Select all
-                                        "cmd+f",        // Find
-                                    ])?
-                                    .with_handler(|app, shortcut, event| {
-                                            if event.state == ShortcutState::Pressed  {
-                                                    // Check if any window is focused before handling shortcuts
-                                                    let window = app.get_webview_window("main");
-                                                    if let Some(window) = window {
-                                                            if let Ok(is_focused) = window.is_focused() {
-                                                                    if !is_focused {
-                                                                            // Window is not focused, don't handle the shortcut
-                                                                            return;
-                                                                    }
-                                                            }
-                                                    }
-
-                                                    if shortcut.mods.contains(Modifiers::SUPER) && shortcut.key == Code::KeyW {
-                                                         println!("Closing tab");
-                                                            app.emit("closeTab", ()).unwrap();
-                                                    }
-                                                    if shortcut.mods.contains(Modifiers::SUPER) && shortcut.key == Code::KeyF {
-                                                            println!("Search");
-                                                            app.emit("search", ()).unwrap();
-                                                    }
-                                            }
-                                    })
-                                    .build(),
-                        )?;
-                }
-
-                Ok(())
-        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

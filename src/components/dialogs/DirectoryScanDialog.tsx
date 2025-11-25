@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState, useEffect} from 'react';
 import {X, Folder, Check, Loader2, AlertCircle} from 'lucide-react';
 import { FileInfo } from '../../types';
 import {match} from "minimatch"
@@ -19,6 +19,20 @@ export function DirectoryScanDialog({
 }: DirectoryScanDialogProps) {
   const [patternExcludedPaths, setPatternExcludedPaths] = useState<Set<string>>(new Set());
   const [excludedPaths, setExcludedPaths] = useState<Set<string>>(new Set());
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      } else if (e.key === 'Enter' && !scanning && scannedTree) {
+        handleConfirm();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [scanning, scannedTree, excludedPaths]);
 
   const getFlattenedPaths = useCallback(() => scannedTree ? flattenPath(scannedTree) : [], [scannedTree])
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { MainLayout } from './components/layout/MainLayout';
 import { FileTree } from './components/layout/FileTree';
@@ -7,17 +7,31 @@ import { GroupManager } from './components/analysis/GroupManager';
 import { Timeline } from './components/analysis/Timeline';
 import { DirectoryScanDialog } from './components/dialogs/DirectoryScanDialog';
 import { IndexingModal } from './components/dialogs/IndexingModal';
-import { useFileSystem } from './hooks/useFileSystem';
+import { useFileSystemWithPanes } from './hooks/useFileSystemWithPanes';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { SplitLayout } from './components/layout/SplitLayoutEnhanced';
 import { FileInfo, AnalysisGroup, IndexStats } from './types';
-import { PreviewFile, PreviewFileHandle } from './components/viewers/PreviewFile.tsx';
 import {scanDirectory, createProjectDatabase, indexDirectory, createGroup, getGroups, deleteGroup} from './lib/tauri';
-import {listen} from "@tauri-apps/api/event";
 
 function App() {
-  const { files, setFiles, tabs, activeTabId, setActiveTabId, openFile, closeTab } = useFileSystem();
+  const {
+    files,
+    setFiles,
+    layout,
+    openFile,
+    closeTab,
+    setActiveTab,
+    splitPane,
+    closePane,
+    moveTabToPane,
+    setActivePane,
+  } = useFileSystemWithPanes();
   const [sidebarTab, setSidebarTab] = useState<'files' | 'search' | 'database' | 'analysis' | 'groups' | 'timeline'>('files');
   const [groups, setGroups] = useState<AnalysisGroup[]>([]);
-  const previewFileRef = useRef<PreviewFileHandle>(null);
+
+  // Get active pane and tab
+  const activePane = layout.panes.find((p) => p.id === layout.activePaneId);
+  const activeTabId = activePane?.activeTabId;
 
   // Directory scanning state
   const [showScanDialog, setShowScanDialog] = useState(false);
@@ -31,22 +45,151 @@ function App() {
   const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
   const [indexError, setIndexError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const unlistenCloseTab = listen("closeTab", () => {
-      console.log("closeTab event received")
-      activeTabId && closeTab(activeTabId)
-    })
-
-    const unlistenSearch = listen("search", () => {
-      console.log("search event received")
-      previewFileRef.current?.openSearch()
-    })
-
-    return () => {
-      unlistenCloseTab.then(fn => fn());
-      unlistenSearch.then(fn => fn());
-    }
-  }, [activeTabId, closeTab])
+  // Register keyboard shortcuts that only work when window is focused
+  useKeyboardShortcuts([
+    {
+      key: 'w',
+      meta: true,
+      action: () => {
+        console.log('Closing tab');
+        if (activeTabId && activePane) {
+          closeTab(activeTabId, activePane.id);
+        }
+      },
+    },
+    {
+      key: 'o',
+      meta: true,
+      action: () => {
+        console.log('Opening folder');
+        handleOpenFolder();
+      },
+    },
+    {
+      key: '\\',
+      meta: true,
+      action: () => {
+        console.log('Split vertically');
+        splitPane('vertical');
+      },
+    },
+    {
+      key: '-',
+      meta: true,
+      action: () => {
+        console.log('Split horizontally');
+        splitPane('horizontal');
+      },
+    },
+    {
+      key: 'Tab',
+      ctrl: true,
+      action: () => {
+        console.log('Next tab in pane');
+        if (activePane && activePane.tabs.length > 0) {
+          const currentIndex = activePane.tabs.findIndex(t => t.id === activeTabId);
+          const nextIndex = (currentIndex + 1) % activePane.tabs.length;
+          setActiveTab(activePane.tabs[nextIndex].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: 'Tab',
+      ctrl: true,
+      shift: true,
+      action: () => {
+        console.log('Previous tab in pane');
+        if (activePane && activePane.tabs.length > 0) {
+          const currentIndex = activePane.tabs.findIndex(t => t.id === activeTabId);
+          const prevIndex = currentIndex === 0 ? activePane.tabs.length - 1 : currentIndex - 1;
+          setActiveTab(activePane.tabs[prevIndex].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: '1',
+      meta: true,
+      action: () => {
+        if (activePane && activePane.tabs.length >= 1) {
+          setActiveTab(activePane.tabs[0].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: '2',
+      meta: true,
+      action: () => {
+        if (activePane && activePane.tabs.length >= 2) {
+          setActiveTab(activePane.tabs[1].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: '3',
+      meta: true,
+      action: () => {
+        if (activePane && activePane.tabs.length >= 3) {
+          setActiveTab(activePane.tabs[2].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: '4',
+      meta: true,
+      action: () => {
+        if (activePane && activePane.tabs.length >= 4) {
+          setActiveTab(activePane.tabs[3].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: '5',
+      meta: true,
+      action: () => {
+        if (activePane && activePane.tabs.length >= 5) {
+          setActiveTab(activePane.tabs[4].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: '6',
+      meta: true,
+      action: () => {
+        if (activePane && activePane.tabs.length >= 6) {
+          setActiveTab(activePane.tabs[5].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: '7',
+      meta: true,
+      action: () => {
+        if (activePane && activePane.tabs.length >= 7) {
+          setActiveTab(activePane.tabs[6].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: '8',
+      meta: true,
+      action: () => {
+        if (activePane && activePane.tabs.length >= 8) {
+          setActiveTab(activePane.tabs[7].id, activePane.id);
+        }
+      },
+    },
+    {
+      key: '9',
+      meta: true,
+      action: () => {
+        // Jump to last tab in active pane
+        if (activePane && activePane.tabs.length > 0) {
+          const lastTab = activePane.tabs[activePane.tabs.length - 1];
+          setActiveTab(lastTab.id, activePane.id);
+        }
+      },
+    },
+  ])
 
   const mockTimelineEvents = [
     {
@@ -226,9 +369,9 @@ function App() {
   };
 
   const renderMainContent = () => {
-    const activeTab = tabs.find(t => t.id === activeTabId);
+    const hasAnyTabs = layout.panes.some((p) => p.tabs.length > 0);
 
-    if (!activeTab) {
+    if (!hasAnyTabs) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-gray-500">
           <div className="text-center max-w-md">
@@ -266,8 +409,18 @@ function App() {
         </div>
       );
     }
+
     return (
-      <PreviewFile ref={previewFileRef} path={activeTab.path} fileName={activeTab?.name} />
+      <SplitLayout
+        layout={layout}
+        onTabClick={setActiveTab}
+        onTabClose={closeTab}
+        onPaneClick={setActivePane}
+        onSplitHorizontal={() => splitPane('horizontal')}
+        onSplitVertical={() => splitPane('vertical')}
+        onClosePane={closePane}
+        onMoveTab={moveTabToPane}
+      />
     );
   };
 
@@ -277,10 +430,10 @@ function App() {
         sidebarContent={renderSidebarContent()}
         sidebarTab={sidebarTab}
         onSidebarTabChange={setSidebarTab}
-        tabs={tabs}
-        activeTabId={activeTabId}
-        onTabClick={setActiveTabId}
-        onTabClose={closeTab}
+        tabs={[]}
+        activeTabId={undefined}
+        onTabClick={() => {}}
+        onTabClose={() => {}}
         onOpenFolder={handleOpenFolder}
       >
         {renderMainContent()}
