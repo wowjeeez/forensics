@@ -32,6 +32,8 @@ pub enum Query {
         max_size: Option<u64>,
         /// Filter by extension
         extension: Option<String>,
+        /// Filter by path prefix (for checking if specific paths are indexed)
+        path_prefix: Option<String>,
     },
 
     /// Search within structured data
@@ -93,12 +95,14 @@ impl QueryPlanner {
                 min_size,
                 max_size,
                 extension,
+                path_prefix,
             } => self.execute_metadata_filter(
                 category.as_ref(),
                 mime_type.as_deref(),
                 *min_size,
                 *max_size,
                 extension.as_deref(),
+                path_prefix.as_deref(),
             )?,
             Query::Structured {
                 structured_type,
@@ -138,6 +142,7 @@ impl QueryPlanner {
         _min_size: Option<u64>,
         _max_size: Option<u64>,
         extension: Option<&str>,
+        path_prefix: Option<&str>,
     ) -> Result<Vec<TypedHit>> {
         // Build Tantivy query for metadata filtering
         let mut query_parts = Vec::new();
@@ -154,6 +159,10 @@ impl QueryPlanner {
             query_parts.push(format!("extension:{}", ext));
         }
 
+        if let Some(prefix) = path_prefix {
+            query_parts.push(format!("path:{}", prefix));
+        }
+
         // For size filtering, we'll need to post-filter since Tantivy range queries
         // are more complex. For now, just do the text filters.
         let query_str = if query_parts.is_empty() {
@@ -163,6 +172,20 @@ impl QueryPlanner {
         };
 
         let hits = self.execute_fulltext(&query_str, 10000)?;
+
+        // Post-filter by path prefix if specified (more precise matching)
+        let hits = if let Some(prefix) = path_prefix {
+            hits.into_iter()
+                .filter(|hit| {
+                    hit.metadata
+                        .path
+                        .to_string_lossy()
+                        .starts_with(prefix)
+                })
+                .collect()
+        } else {
+            hits
+        };
 
         Ok(hits)
     }

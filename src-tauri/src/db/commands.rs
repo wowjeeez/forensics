@@ -448,3 +448,159 @@ pub async fn get_groups(state: State<'_, DatabaseState>) -> Result<Vec<Group>, S
     let db = state.get_auxiliary_db();
     Ok(db.get_groups())
 }
+
+/// Check if a specific path is indexed
+#[tauri::command]
+pub async fn is_path_indexed(
+    path: String,
+    state: State<'_, DatabaseState>,
+) -> Result<bool, String> {
+    let db = state.get_db().await.ok_or("No database open")?;
+    let path_buf = PathBuf::from(path);
+
+    // Query the index to see if this path exists
+    let query = Query::Metadata {
+        category: None,
+        mime_type: None,
+        min_size: None,
+        max_size: None,
+        extension: None,
+        path_prefix: Some(path_buf.to_string_lossy().to_string()),
+    };
+
+    let qp = db.query_planner();
+    match qp.execute(&query) {
+        Ok(result) => Ok(!result.hits.is_empty()),
+        Err(_) => Ok(false),
+    }
+}
+
+/// Get detailed index status for a path
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PathIndexStatus {
+    pub path: String,
+    pub indexed: bool,
+    pub indexed_at: Option<String>,
+    pub file_count: Option<u64>,
+    pub indexed_file_count: Option<u64>,
+    pub status: String, // "not_indexed", "indexed", "partial", "error"
+}
+
+#[tauri::command]
+pub async fn get_path_index_status(
+    path: String,
+    state: State<'_, DatabaseState>,
+) -> Result<PathIndexStatus, String> {
+    let db = state.get_db().await.ok_or("No database open")?;
+    let path_buf = PathBuf::from(&path);
+
+    // Check if path is a directory or file
+    let is_dir = path_buf.is_dir();
+
+    if is_dir {
+        // For directories, count files and indexed files
+        let query = Query::Metadata {
+            category: None,
+            mime_type: None,
+            min_size: None,
+            max_size: None,
+            extension: None,
+            path_prefix: Some(path_buf.to_string_lossy().to_string()),
+        };
+
+        let qp = db.query_planner();
+        match qp.execute(&query) {
+            Ok(result) => {
+                let indexed_count = result.hits.len() as u64;
+
+                // Count total files in directory (simplified)
+                let total_files = count_files_in_dir(&path_buf).unwrap_or(0);
+
+                let status = if indexed_count == 0 {
+                    "not_indexed"
+                } else if indexed_count < total_files {
+                    "partial"
+                } else {
+                    "indexed"
+                };
+
+                Ok(PathIndexStatus {
+                    path,
+                    indexed: indexed_count > 0,
+                    indexed_at: None,
+                    file_count: Some(total_files),
+                    indexed_file_count: Some(indexed_count),
+                    status: status.to_string(),
+                })
+            }
+            Err(e) => Err(e.to_string()),
+        }
+    } else {
+        // For files, check if it exists in index
+        let query = Query::Metadata {
+            category: None,
+            mime_type: None,
+            min_size: None,
+            max_size: None,
+            extension: None,
+            path_prefix: Some(path_buf.to_string_lossy().to_string()),
+        };
+
+        let qp = db.query_planner();
+        match qp.execute(&query) {
+            Ok(result) => {
+                let indexed = !result.hits.is_empty();
+                let indexed_at = if indexed {
+                    result.hits.first().and_then(|hit| {
+                        hit.metadata.indexed_at.map(|dt| dt.to_rfc3339())
+                    })
+                } else {
+                    None
+                };
+
+                Ok(PathIndexStatus {
+                    path,
+                    indexed,
+                    indexed_at,
+                    file_count: Some(1),
+                    indexed_file_count: if indexed { Some(1) } else { Some(0) },
+                    status: if indexed { "indexed" } else { "not_indexed" }.to_string(),
+                })
+            }
+            Err(e) => Err(e.to_string()),
+        }
+    }
+}
+
+/// Helper function to count files in a directory
+fn count_files_in_dir(dir: &PathBuf) -> Result<u64, std::io::Error> {
+    let mut count = 0u64;
+
+    fn count_recursive(dir: &PathBuf, count: &mut u64) -> Result<(), std::io::Error> {
+        if !dir.is_dir() {
+            return Ok(());
+        }
+
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if path.is_file() {
+                *count += 1;
+            } else if path.is_dir() {
+                // Skip hidden directories
+                if let Some(name) = path.file_name() {
+                    if !name.to_string_lossy().starts_with('.') {
+                        count_recursive(&path, count)?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    count_recursive(dir, &mut count)?;
+    Ok(count)
+}

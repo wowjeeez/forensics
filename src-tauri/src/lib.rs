@@ -51,10 +51,14 @@ pub fn run() {
             db::commands::query_indexeddb_info,
             db::commands::create_group,
             db::commands::get_groups,
-            db::commands::delete_group // db::commands::store_file_note,
-                                       // db::commands::add_file_tag,
-                                       // db::commands::get_all_tags,
-                                       // db::commands::get_database_stats,
+            db::commands::delete_group,
+            // Index status commands
+            db::commands::is_path_indexed,
+            db::commands::get_path_index_status,
+            // db::commands::store_file_note,
+            // db::commands::add_file_tag,
+            // db::commands::get_all_tags,
+            // db::commands::get_database_stats,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
