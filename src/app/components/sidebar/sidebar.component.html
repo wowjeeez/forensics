@@ -1,0 +1,52 @@
+<div class="sidebar-container">
+  <!-- Icon Bar -->
+  <div class="icon-bar" [style.width.px]="config.iconBarWidth || 48">
+    <!-- Top Tools -->
+    <div class="icon-bar-top">
+      <button
+        *ngFor="let tool of getTopTools()"
+        mat-icon-button
+        class="icon-bar-button"
+        [class.active]="selectedTool() === tool.id"
+        (click)="toggleTool(tool.id)"
+        [matTooltip]="tool.tooltip || tool.label"
+        matTooltipPosition="right">
+        <mat-icon>{{ tool.icon }}</mat-icon>
+      </button>
+    </div>
+
+    <!-- Bottom Tools -->
+    <div class="icon-bar-bottom">
+      <button
+        *ngFor="let tool of getBottomTools()"
+        mat-icon-button
+        class="icon-bar-button"
+        [class.active]="selectedTool() === tool.id"
+        (click)="toggleTool(tool.id)"
+        [matTooltip]="tool.tooltip || tool.label"
+        matTooltipPosition="right">
+        <mat-icon>{{ tool.icon }}</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tool Window Panel -->
+  <div
+    *ngIf="selectedTool()"
+    class="tool-window"
+    [style.width.px]="config.width || 300"
+    [@slideIn]="getAnimationParams()">
+    <div class="tool-window-header">
+      <span class="tool-window-title">{{ getSelectedTool()?.label || '' }}</span>
+      <button mat-icon-button (click)="closeTool()" class="close-button">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="tool-window-content">
+      <ng-container *ngIf="getSelectedTool()?.contentTemplate">
+        <ng-container *ngTemplateOutlet="getSelectedTool()!.contentTemplate"></ng-container>
+      </ng-container>
+      <ng-content></ng-content>
+    </div>
+  </div>
+</div>

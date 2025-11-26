@@ -1,0 +1,81 @@
+.app-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 64px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.app-container {
+  position: fixed;
+  top: 64px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  overflow: auto;
+  background-color: #2b2b2b;
+  padding: 24px;
+}
+
+.tool-content-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #787878;
+  padding: 16px;
+  text-align: center;
+}
+
+.tool-content-placeholder mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.tool-content-placeholder p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2b2b2b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4e4e4e;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5e5e5e;
+}
+
+/* Material List customization for dark theme */
+::ng-deep .mat-mdc-list-item {
+  color: #bbbbbb !important;
+}
+
+::ng-deep .mat-mdc-list-item:hover {
+  background-color: #3c3f41 !important;
+}

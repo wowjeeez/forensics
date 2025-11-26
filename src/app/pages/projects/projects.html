@@ -1,0 +1,16 @@
+<mat-list>
+    <div mat-subheader>Folders</div>
+    @if (loading()) {
+        <mat-spinner></mat-spinner>
+    } @else {
+        @for (project of projects(); track project) {
+            <mat-list-item>
+                <mat-icon matListItemIcon>folder</mat-icon>
+                <div matListItemTitle>{{project.location}}</div>
+                <div matListItemLine>{{project.dbSize | fileSize}}</div>
+            </mat-list-item>
+        }
+        <mat-divider></mat-divider>
+        <button matButton="elevated" (click)="openFolder()">Open folder</button>
+    }
+</mat-list>

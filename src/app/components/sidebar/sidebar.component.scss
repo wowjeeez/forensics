@@ -1,0 +1,113 @@
+.sidebar-container {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Icon Bar */
+.icon-bar {
+  background-color: #2b2b2b;
+  border-right: 1px solid #323232;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.icon-bar-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-bar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.icon-bar-button {
+  width: 40px !important;
+  height: 40px !important;
+  color: #afafaf;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: #3c3f41;
+    color: #ffffff;
+  }
+
+  &.active {
+    background-color: #4b6eaf;
+    color: #ffffff;
+  }
+}
+
+/* Tool Window Panel */
+.tool-window {
+  background-color: #313335;
+  border-right: 1px solid #323232;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tool-window-header {
+  height: 32px;
+  background-color: #3c3f41;
+  border-bottom: 1px solid #323232;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+.tool-window-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #bbbbbb;
+  letter-spacing: 0.5px;
+}
+
+.close-button {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.tool-window-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #313335;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #4e4e4e;
+    border-radius: 5px;
+
+    &:hover {
+      background: #5e5e5e;
+    }
+  }
+}

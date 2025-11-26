@@ -1,0 +1,36 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$modern-dark-theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$violet-palette,
+    tertiary: mat.$cyan-palette,
+  ),
+  typography: (
+    brand-family: 'Roboto, "Helvetica Neue", sans-serif',
+    plain-family: 'Roboto, "Helvetica Neue", sans-serif',
+    bold-weight: 600,
+    medium-weight: 500,
+    regular-weight: 400,
+  ),
+  density: (
+    scale: -1
+  )
+));
+
+html {
+  @include mat.all-component-themes($modern-dark-theme);
+  @include mat.system-level-colors($modern-dark-theme);
+  @include mat.system-level-typography($modern-dark-theme);
+  @include mat.all-component-densities($modern-dark-theme);
+}
+
+body {
+  color-scheme: dark;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
