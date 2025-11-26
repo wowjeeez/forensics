@@ -2,6 +2,11 @@
 
 @include mat.core();
 
+@include mat.dialog-overrides((
+        container-max-width: 100%,
+        container-small-max-width: 100%
+));
+
 $modern-dark-theme: mat.define-theme((
   color: (
     theme-type: dark,

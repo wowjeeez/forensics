@@ -1,0 +1,131 @@
+<div class="dialog-container">
+  <!-- Dialog Title -->
+  <div class="dialog-header">
+    <h2 class="dialog-title">
+      {{ scanning ? 'Scanning Directory...' : 'Review Directory Structure' }}
+    </h2>
+    <button mat-icon-button (click)="onCancel()" class="close-button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Dialog Content -->
+  <div class="">
+    <!-- Scanning State -->
+    <div *ngIf="scanning" class="scanning-state">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p class="scanning-text">Scanning directory structure...</p>
+      <p class="scanning-subtext">This may take a moment for large directories</p>
+    </div>
+
+    <!-- Scanned Tree -->
+    <div *ngIf="!scanning && scannedTree" class="content-wrapper">
+      <!-- Info Banner -->
+      <div class="info-banner">
+        <mat-icon class="info-icon">info</mat-icon>
+        <div class="info-content">
+          <p class="info-text">
+            Review the directory structure and exclude any folders you don't want to index.
+          </p>
+          <p class="info-subtext">
+            Excluding large directories can prevent performance issues.
+          </p>
+        </div>
+      </div>
+        <mat-tab-group dynamicHeight>
+            <mat-tab label="Files">
+                <div class="mat-elevation-z4">
+                    <div class="controls-row">
+                        <div class="pattern-controls">
+                            <div class="pattern-input-container">
+                                <!-- Exclusion Tags -->
+                                <span
+                                        *ngFor="let exc of excludedEntries"
+                                        class="exclusion-tag"
+                                        (click)="removeExclusion(exc)">
+              {{ exc }}
+            </span>
+
+                                <!-- Input -->
+                                <input
+                                        type="text"
+                                        [(ngModel)]="currentExclusion"
+                                        (blur)="addNewExclusion()"
+                                        (keydown.enter)="addNewExclusion()"
+                                        placeholder="Pattern (e.g., **/node_modules)"
+                                        class="pattern-input"
+                                />
+
+                                <!-- Clear Button -->
+                                <button
+                                        *ngIf="excludedEntries.length > 0"
+                                        mat-icon-button
+                                        (click)="clearAllExclusions()"
+                                        class="clear-button">
+                                    <mat-icon>close</mat-icon>
+                                </button>
+                            </div>
+
+                            <button mat-raised-button (click)="calculateGlobbedExclusions()" class="calculate-button">
+                                Calculate
+                            </button>
+                        </div>
+
+                        <span class="file-count">
+          Total: {{ totalFiles }} files
+          <span *ngIf="excludedCount > 0" class="excluded-count">
+            ({{ excludedCount }} excluded)
+          </span>
+        </span>
+                    </div>
+
+                    <!-- Directory Tree (Scrollable) -->
+                    <div class="tree-scroll-container">
+                        <app-directory-tree-node
+                                [node]="scannedTree"
+                                [excludedPaths]="excludedPaths"
+                                (togglePath)="togglePath($event)"
+                                [depth]="0">
+                        </app-directory-tree-node>
+                    </div>
+                </div>
+            </mat-tab>
+            <mat-tab label="Settings">
+                <div class="example-small-box mat-elevation-z4 flex flex-col">
+                    <mat-checkbox
+                            class="example-margin"
+                            [checked]="false"
+                            (change)="setScanSetting('autoUnpackFiles', $event.checked)"
+                    >
+                        Automatically unpack and store archives
+                    </mat-checkbox>
+                    <mat-checkbox
+                            class="example-margin"
+                            [checked]="false"
+                            (change)="setScanSetting('autoUnpackFiles', $event.checked)"
+                    >
+                        Enable OCR based image indexing
+                    </mat-checkbox>
+
+                    <mat-form-field class="example-full-width mt-2">
+                        <mat-label>OCR</mat-label>
+                        <input matInput placeholder="vLLM compatible endpoint">
+                    </mat-form-field>
+
+                </div>
+            </mat-tab>
+        </mat-tab-group>
+    </div>
+  </div>
+
+  <!-- Dialog Actions -->
+  <div *ngIf="!scanning && scannedTree" class="dialog-footer" (keydown)="preventDefault($event)">
+    <button mat-button (click)="onCancel()" class="cancel-button">
+      Cancel
+    </button>
+    <button mat-raised-button color="primary" (click)="onConfirm()" class="confirm-button">
+      <mat-icon>check</mat-icon>
+      Index {{ totalFiles - excludedCount }} Files
+    </button>
+  </div>
+</div>

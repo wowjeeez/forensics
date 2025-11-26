@@ -1,0 +1,22 @@
+<div class="split-container" [class.horizontal]="orientation === 'horizontal'" [class.vertical]="orientation === 'vertical'">
+  <div
+    class="split-pane first-pane"
+    [style.width.%]="orientation === 'vertical' ? currentSize : 100"
+    [style.height.%]="orientation === 'horizontal' ? currentSize : 100">
+    <ng-content select="[first-pane]"></ng-content>
+  </div>
+
+  <div
+    class="split-divider"
+    [class.dragging]="isDragging"
+    (mousedown)="onDragStart($event)">
+    <div class="divider-handle"></div>
+  </div>
+
+  <div
+    class="split-pane second-pane"
+    [style.width.%]="orientation === 'vertical' ? (100 - currentSize) : 100"
+    [style.height.%]="orientation === 'horizontal' ? (100 - currentSize) : 100">
+    <ng-content select="[second-pane]"></ng-content>
+  </div>
+</div>

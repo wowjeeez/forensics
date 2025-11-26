@@ -1,0 +1,183 @@
+<!-- Top Toolbar -->
+<mat-toolbar class="app-toolbar" color="primary">
+  <button mat-icon-button (click)="toggleSidebar()" matTooltip="Toggle Sidebar">
+    <mat-icon>{{showSidebar() ? 'menu_open' : 'menu'}}</mat-icon>
+  </button>
+
+  <span class="toolbar-title">Forensic</span>
+
+  <span class="toolbar-spacer"></span>
+
+  <button mat-icon-button (click)="openFolder()" matTooltip="Open Folder (⌘O)">
+    <mat-icon>folder_open</mat-icon>
+  </button>
+
+  <button mat-icon-button (click)="startSearch()" matTooltip="Search (⌘F)">
+    <mat-icon>search</mat-icon>
+  </button>
+
+  <button mat-icon-button matTooltip="Settings">
+    <mat-icon>settings</mat-icon>
+  </button>
+</mat-toolbar>
+
+<!-- Main Content Area -->
+<div class="main-container">
+  <!-- Sidebar with Split Pane -->
+  <app-split-pane
+    *ngIf="showSidebar()"
+    [orientation]="'vertical'"
+    [initialSize]="20"
+    [minSize]="200"
+    (sizeChanged)="sidebarWidth.set($event)">
+
+    <!-- Sidebar Content -->
+    <div first-pane class="sidebar-container">
+      <app-sidebar
+        [tools]="sidebarTools"
+        [config]="sidebarConfig"
+        [defaultOpenTool]="'project'"
+        (toolChanged)="onToolChanged($event)">
+      </app-sidebar>
+    </div>
+
+    <!-- Editor Area -->
+    <div second-pane class="editor-container">
+      <!-- Tab Bar -->
+      <mat-tab-group
+        [selectedIndex]="selectedTabIndex()"
+        (selectedIndexChange)="onTabChange($event)"
+        class="editor-tabs"
+        animationDuration="0ms">
+
+        <mat-tab *ngFor="let tab of tabs()" [label]="tab.title">
+          <ng-template mat-tab-label>
+            <mat-icon *ngIf="tab.icon" class="tab-icon">{{tab.icon}}</mat-icon>
+            <span class="tab-title">{{tab.title}}</span>
+            <mat-icon
+              *ngIf="tab.isDirty"
+              class="tab-dirty"
+              matTooltip="Unsaved changes">
+              fiber_manual_record
+            </mat-icon>
+            <button
+              mat-icon-button
+              class="tab-close"
+              (click)="closeTab(tab.id); $event.stopPropagation()"
+              matTooltip="Close (⌘W)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </ng-template>
+
+          <!-- Tab Content -->
+          <div class="tab-content">
+            <div *ngIf="tab.viewerType === 'welcome'" class="welcome-screen">
+              <mat-icon class="welcome-icon">folder_open</mat-icon>
+              <h2>Welcome to Forensic</h2>
+              <p>Open a folder to start analyzing files</p>
+              <button mat-raised-button color="primary" (click)="openFolder()">
+                <mat-icon>folder_open</mat-icon>
+                Open Folder
+              </button>
+            </div>
+
+            <div *ngIf="tab.viewerType === 'code-editor'" class="viewer-container">
+              <p>Code Editor - {{tab.filePath}}</p>
+            </div>
+
+            <div *ngIf="tab.viewerType === 'hex-viewer'" class="viewer-container">
+              <p>Hex Viewer - {{tab.filePath}}</p>
+            </div>
+
+            <div *ngIf="tab.viewerType === 'image-viewer'" class="viewer-container">
+              <p>Image Viewer - {{tab.filePath}}</p>
+            </div>
+
+            <div *ngIf="tab.viewerType === 'pdf-viewer'" class="viewer-container">
+              <p>PDF Viewer - {{tab.filePath}}</p>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+  </app-split-pane>
+
+  <!-- No Sidebar View -->
+  <div *ngIf="!showSidebar()" class="editor-container-full">
+    <mat-tab-group
+      [selectedIndex]="selectedTabIndex()"
+      (selectedIndexChange)="onTabChange($event)"
+      class="editor-tabs"
+      animationDuration="0ms">
+
+      <mat-tab *ngFor="let tab of tabs()" [label]="tab.title">
+        <ng-template mat-tab-label>
+          <mat-icon *ngIf="tab.icon" class="tab-icon">{{tab.icon}}</mat-icon>
+          <span class="tab-title">{{tab.title}}</span>
+          <button
+            mat-icon-button
+            class="tab-close"
+            (click)="closeTab(tab.id); $event.stopPropagation()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </ng-template>
+
+        <div class="tab-content">
+          <div *ngIf="tab.viewerType === 'welcome'" class="welcome-screen">
+            <mat-icon class="welcome-icon">folder_open</mat-icon>
+            <h2>Welcome to Forensic</h2>
+            <p>Open a folder to start analyzing files</p>
+            <button mat-raised-button color="primary" (click)="openFolder()">
+              <mat-icon>folder_open</mat-icon>
+              Open Folder
+            </button>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>
+
+<!-- Status Bar -->
+<div class="status-bar">
+  <span class="status-item">
+    <mat-icon>folder</mat-icon>
+    Ready
+  </span>
+  <span class="status-spacer"></span>
+  <span class="status-item">
+    <mat-icon>description</mat-icon>
+    {{tabs().length}} tabs
+  </span>
+</div>
+
+<!-- Sidebar Tool Templates -->
+<ng-template #projectContent>
+  <div class="tool-content">
+    <p class="tool-placeholder">File tree will be displayed here</p>
+  </div>
+</ng-template>
+
+<ng-template #timelineContent>
+  <div class="tool-content">
+    <p class="tool-placeholder">Timeline view</p>
+  </div>
+</ng-template>
+
+<ng-template #evidenceContent>
+  <div class="tool-content">
+    <p class="tool-placeholder">Evidence files</p>
+  </div>
+</ng-template>
+
+<ng-template #searchContent>
+  <div class="tool-content">
+    <p class="tool-placeholder">Search interface</p>
+  </div>
+</ng-template>
+
+<ng-template #groupsContent>
+  <div class="tool-content">
+    <p class="tool-placeholder">Groups panel</p>
+  </div>
+</ng-template>
